@@ -2,7 +2,7 @@
 
 ## Android
 Current milestone: M00 — Environment Setup
-Status: NOT STARTED
+Status: IN PROGRESS — awaiting physical-device confirmation
 
 ## iOS
 Current milestone: M00 — Remote Development Setup
