@@ -23,4 +23,4 @@ This repository is a technical feasibility lab for Attention. Do not prematurely
 A milestone is done only when it builds, has instrumentation, has clear physical-device steps, lists limitations, and did not accidentally implement later work.
 
 ## Current Priority
-Android first.
+iOS first. A local Apple silicon Mac, Xcode, a physical iPhone, and a paid Apple Developer Program membership are available, so Screen Time APIs can be tested on-device. Android is paused at M00.

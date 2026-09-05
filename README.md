@@ -31,12 +31,12 @@ Attention/
         └── docs/
 ```
 
-## Start Here — Android
+## Start Here — iOS
 
-The current priority is Android because it can be developed immediately from Windows.
+The current priority is iOS. A local Apple silicon Mac, Xcode, a physical iPhone, and a paid Apple Developer Program membership are all available, so the Screen Time APIs can finally be tested on-device.
 
 First Cursor prompt:
 
-> Read the root `AGENTS.md`, root `PROTOTYPE_MASTER_PLAN.md`, `prototypes/android/AttentionAndroidAPITest/PROTOTYPE_PLAN.md`, and `prototypes/android/AttentionAndroidAPITest/milestones/MILESTONE_00_ENVIRONMENT_SETUP.md`. Implement Milestone 00 only. Do not begin later milestones. When the environment and blank app are verified, summarize changes, give me the physical-device test steps, and stop.
+> Read the root `AGENTS.md`, root `PROTOTYPE_MASTER_PLAN.md`, `prototypes/ios/AttentionAPITest/PROTOTYPE_PLAN.md`, and `prototypes/ios/AttentionAPITest/milestones/MILESTONE_00_LOCAL_DEV_SETUP.md`. Implement Milestone 00 only. Do not begin later milestones. When the blank app builds and installs, summarize changes, give me the physical-device test steps, and stop.
 
-When Mac access is ready, switch to the iOS prototype and follow its milestones independently.
+Android is paused at M00 and keeps its own milestones. Its earlier rationale — that it was the only platform buildable from a Windows PC — no longer applies.

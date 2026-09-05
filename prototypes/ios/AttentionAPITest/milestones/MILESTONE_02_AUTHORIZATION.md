@@ -4,7 +4,12 @@
 
 **User-visible change:** Setup shows `notDetermined / approved / denied` (or the actual `AuthorizationStatus`) and a Request button.
 
-**Prerequisite:** M01 PASS. Paid Apple Developer account. Physical iPhone — **simulator is not acceptable for PASS**.
+**Prerequisite:** M01 PASS. Paid Apple Developer Program membership. Physical iPhone — **simulator is not acceptable for PASS**.
+
+Device preconditions that cause confusing failures if missed:
+
+- Screen Time is set up on the iPhone (Settings > Screen Time).
+- The signed-in Apple ID is **not** a child account in a Family Sharing group and is not governed by another device's Screen Time passcode. `.individual` authorization is for the device's own user; managed child accounts fail here.
 
 **Agent rule:** implement this milestone only. Do not present `FamilyActivityPicker` yet (M03). Do not apply shields (M04).
 

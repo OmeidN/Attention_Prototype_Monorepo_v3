@@ -15,7 +15,7 @@
 
 ## Context
 
-Extensions die, shields persist, authorization can be removed in Settings. Date rollover must reset M11 counts. **Tracked-app history must still be there if tokens changed** — if a reboot/update breaks tokens, UUID rows remain and `refreshToken` is the recovery (log a miss if the shield no longer matches). Cloud-Mac install quirks stay in REMOTE_MAC_WORKFLOW, not blamed on Screen Time.
+Extensions die, shields persist, authorization can be removed in Settings. Date rollover must reset M11 counts. **Tracked-app history must still be there if tokens changed** — if a reboot/update breaks tokens, UUID rows remain and `refreshToken` is the recovery (log a miss if the shield no longer matches). Signing and install quirks stay in `docs/DEV_ENVIRONMENT.md`, not blamed on Screen Time.
 
 ## Steps for the agent
 

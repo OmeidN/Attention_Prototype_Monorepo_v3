@@ -4,7 +4,7 @@
 
 **User-visible change:** three tabs, on-device log list, device/build info, clear/copy logs.
 
-**Prerequisite:** M00 recorded (Mac/Xcode exist). Simulator is enough to implement; later milestones need a phone.
+**Prerequisite:** M00 recorded (Mac/Xcode/iPhone install confirmed). Simulator is enough to prove compilation; run on the phone.
 
 **Agent rule:** implement this milestone only. Do not add Family Controls capability or authorization UI.
 
@@ -16,7 +16,7 @@
 
 ## Context
 
-Same shell idea as Android M01 so experiments have a place to live. iOS logging must be visible on-device because a cloud Mac may not have USB Log.
+Same shell idea as Android M01 so experiments have a place to live. iOS logging must be visible on-device: from M05 onward the shield and monitor extensions are separate processes whose output does not reach the host app's console, and most Screen Time behavior has to be exercised untethered with the phone locking and unlocking normally.
 
 Suggested files:
 
@@ -41,7 +41,7 @@ Suggested files:
 
 ## Physical-device checklist (human)
 
-- [ ] Prefer physical iPhone if install exists; else simulator and note that M02+ cannot be trusted on simulator
+- [ ] Run on the physical iPhone (install was confirmed in M00)
 - [ ] Setup shows plausible device/OS
 - [ ] Test log appears on Logs tab with timestamp
 - [ ] Clear and copy work
