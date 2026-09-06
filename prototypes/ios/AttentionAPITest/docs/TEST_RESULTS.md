@@ -12,18 +12,18 @@
 - Apple Developer status: paid Apple Developer Program membership
 - Team ID: VPG6W79282
 - Bundle id: com.attention.apitest
-- Entitlements file: AttentionAPITest/AttentionAPITest.entitlements (`com.apple.developer.family-controls`)
-- App Group: group.com.attention.apitest (planned for M03+)
+- Entitlements file: AttentionAPITest/AttentionAPITest.entitlements (`com.apple.developer.family-controls` + App Groups)
+- App Group: group.com.attention.apitest
 - Family Controls signing status: VERIFIED on device — individual authorization `approved` (2026-09-06)
 
 
 | Milestone | Test                    | Result     | Evidence / Notes                                                                                                                                                     |
 | --------- | ----------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | M00       | Environment             | PASS       | Physical iPhone 17 / iOS 26.6.1 via Xcode USB. Setup shows correct device/OS/bundle `com.attention.apitest`. ISO timestamp updates on leave/return. Human confirmed 2026-09-06. |
-| M01       | Base project            | PASS       | Setup/Experiments/Logs on device. Test log lines persist across leave/return and relaunch until Clear; Clear empties; Copy works. No FamilyControls/ManagedSettings/DeviceActivity yet. Human confirmed 2026-09-06. |
-| M02       | Authorization           | PASS       | Cold launch `notDetermined` → Request individual → `request_success status=approved`. Logs: `ATTN-M02 request_start` then `request_success`. Human confirmed 2026-09-06 on iPhone 17. |
-| M03       | App selection           | NOT TESTED |                                                                                                                                                                      |
-| M04       | Shield reliability      | NOT TESTED |                                                                                                                                                                      |
+| M01       | Base project            | PASS       | Setup/Experiments/Logs on device. Test log lines persist across leave/return and relaunch until Clear; Clear empties; Copy works. Human confirmed 2026-09-06. |
+| M02       | Authorization           | PASS       | Cold launch `notDetermined` → Request individual → `request_success status=approved`. Human confirmed 2026-09-06 on iPhone 17. |
+| M03       | App selection           | PASS       | UUID PK + naming + App Group. Name probe NO. Follow-ups confirmed 2026-09-06: one-at-a-time add (stable UUIDs); uncheck-tracked rejected; remove one / multi-remove / Clear all. |
+| M04       | Shield reliability      | BUILDS — AWAITING DEVICE | Manual `ManagedSettingsStore.shield.applications` apply/clear from tracked tokens; default system shield; `ATTN-M04` logs; no extensions. Human must confirm on iPhone. |
 | M05       | Custom shield           | NOT TESTED |                                                                                                                                                                      |
 | M06       | Shield actions          | NOT TESTED |                                                                                                                                                                      |
 | M07       | Usage threshold         | NOT TESTED |                                                                                                                                                                      |
@@ -42,6 +42,6 @@ Recorded from `.swiftinterface` files before device testing. Device behavior sti
 
 - `threshold_unit`: **duration**. `DeviceActivityEvent.threshold` is `Foundation.DateComponents`; neither initializer accepts an occurrence count. "Opened N times" is not expressible through DeviceActivity events. Confirm on device in M07.
 - `report_host_readable`: UNKNOWN — `DeviceActivityData.ApplicationActivity` exposes `numberOfPickups: Int` and `totalActivityDuration`, but only inside the sandboxed report extension. Whether that number can reach the host process is M08's experiment.
-- `token_name_readable`: UNKNOWN — `FamilyActivityData.shared.installedApplications` (iOS 26.4+) returns `Application` values carrying `bundleIdentifier` and `localizedDisplayName`. M03 probes whether this resolves on the test device.
-- `token_refresh_api`: `ManagedSettings.Token.refresh(_:)` exists on iOS 26.5+. Picker re-bind remains the fallback.
-
+- `token_name_readable`: **NO on this device (M03)** — `FamilyActivityData.shared.installedApplications` threw "Couldn't communicate with a helper application."; `Application(token:).localizedDisplayName` also empty. User-typed labels remain the only reliable naming path. Revisit only if a later OS build changes behavior.
+- `token_refresh_api`: `ManagedSettings.Token.refresh(_:)` exists on iOS 26.5+. Picker re-bind remains the fallback; M03 exercised picker re-bind successfully on device.
+- `family_activity_picker_lock`: **NO API** — cannot disable unchecking specific apps in the system picker. App rejects add if tracked tokens were unchecked; remove is in-app only.

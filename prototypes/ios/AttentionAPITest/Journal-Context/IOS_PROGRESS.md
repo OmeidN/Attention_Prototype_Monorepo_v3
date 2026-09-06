@@ -11,16 +11,16 @@ Last updated: 2026-09-06
 
 | Item | Value |
 |---|---|
-| Current status | **M00–M02 PASS** on physical device |
-| Next action | Implement **M03 — App Selection and Persistence** when human asks |
-| Screen Time APIs in app | `AuthorizationCenter` only so far (Family Controls entitlement) |
+| Current status | **M00–M03 PASS** (incl. one-at-a-time add / remove). **M04 implemented — BUILDS, awaiting device** |
+| Next action | Human: M04 shield apply/clear checklist on iPhone |
+| Screen Time APIs in app | Auth + picker + `ManagedSettingsStore` default shield (no custom shield extensions) |
 | Extensions | None |
-| App Group | Not enabled yet (planned `group.com.attention.apitest` from M03+) |
+| App Group | `group.com.attention.apitest` |
 | Bundle id | `com.attention.apitest` |
-| Entitlements | `AttentionAPITest/AttentionAPITest.entitlements` |
+| Entitlements | Family Controls + App Groups |
 | Team ID | `VPG6W79282` |
 
-Do **not** start M04+ until M03 passes on device. Do **not** treat `milestones/milestones-ios.md` as the active track — that file is an older MVP outline. The live sequence is `MILESTONE_00` … `MILESTONE_13`.
+Do **not** start M05 until M04 passes on device. Do **not** treat `milestones/milestones-ios.md` as the active track. Live sequence: `MILESTONE_00` … `MILESTONE_13`.
 
 ---
 
@@ -35,71 +35,73 @@ Do **not** start M04+ until M03 passes on device. Do **not** treat `milestones/m
 - Apple Developer: paid program membership
 - Team ID: `VPG6W79282`
 
-Working agreement (also in `docs/DEV_ENVIRONMENT.md`): keep Xcode closed while Cursor edits; open Xcode only to sign, run, and test. Both writing `project.pbxproj` will conflict.
+Working agreement: keep Xcode **closed** while Cursor edits; open only to sign, run, and test.
+
+---
+
+## Problems hit and fixes (read this)
+
+### Workflow
+- **Xcode left open during agent edits:** risky for `project.pbxproj` / entitlements clobber.
+- **CLI `xcodebuild` hung on CodeSign** — compile-check with `CODE_SIGNING_ALLOWED=NO`; signed install via Xcode ▶ Run.
+- **App Groups** needed provisioning refresh for `group.com.attention.apitest`.
+
+### M02
+- Yellow warning **Family Controls (Development) vs Distribution** — expected for local USB.
+
+### M03 — naming sheet frozen / blank (fixed)
+- Picker dismiss + immediate `.sheet` race; fragile `$labels[index]`.
+- **Fix:** deferred `.sheet(item: NamingSession)` + draft bindings.
+
+### M03 — token display names (device fact)
+- Probe **NO** — helper communication failure; user-typed labels required.
+
+### M03 — one-at-a-time add + stable UUIDs (fixed + device PASS)
+- Old replace-all minted new UUIDs every save.
+- **Now:** append one new app; existing ids/labels persist. Human confirmed.
+
+### M03 — cannot lock Apple picker checkboxes (device PASS)
+- No API to lock checks. **Reject** add if tracked apps unchecked; **Remove** is in-app (swipe / multi-select / Clear all). Human confirmed.
+
+### Noise to ignore
+- `The variant selector cell index number could not be found` during system picker.
 
 ---
 
 ## Completed milestones
 
-### M00 — Local Development Setup — PASS (2026-09-06)
+### M00 — PASS · M01 — PASS · M02 — PASS
+See earlier journal history / `TEST_RESULTS.md`. Shell + Family Controls individual auth approved on device.
 
-**Goal:** prove local Mac + Xcode + USB install of a blank SwiftUI app. No Family Controls.
+### M03 — App Selection, Naming, Persistence — PASS (2026-09-06)
 
-**Implemented:**
-- Hand-authored Xcode project at `AttentionAPITest.xcodeproj`
-- SwiftUI app entry `AttentionAPITest/AttentionAPITestApp.swift`
-- Setup tab shows app name, milestone labels, ISO-8601 timestamp that updates on appear / scene active
-- Lifecycle logging via `os.Logger` subsystem `attention.m00` and on-device `TestLogger` tags `ATTN-M00`
-- No FamilyControls / ManagedSettings / DeviceActivity / App Groups / extra capabilities
+**Core + follow-ups confirmed on device:**
+- UUID-keyed App Group store; naming; name probe NO
+- One-at-a-time add (stable UUIDs when adding another app)
+- Uncheck-tracked during add → rejected
+- Remove one / multi-remove / Clear all
 
-**Device results (human confirmed):**
-- App installed and ran on iPhone 17 over USB
-- Setup device/OS/bundle info looked correct (`com.attention.apitest`)
-- Timestamp updated after leaving the app and returning
+### M04 — Basic Shielding — BUILDS (awaiting device, 2026-09-06)
 
----
-
-### M01 — iOS Project Setup (experiment shell) — PASS (2026-09-06)
-
-**Goal:** Setup / Experiments / Logs shell, TestLogger, ExperimentStore. Still no authorization.
-
-**Implemented (bundled with M00 in the same build — agent was allowed to combine when still pre–Screen Time):**
-- `RootView` — TabView with Setup, Experiments, Logs
-- `SetupView` — milestone labels, M00 timestamp, device/build info, `foundation_ok`, explicit “Screen Time APIs: none yet”
-- `ExperimentsView` — “M01 — no experiments yet” + button that writes a tagged log line
-- `LogsView` — reverse-chronological list, Clear, Copy all
-- `Shared/TestLogger.swift` — 500-line ring buffer, ISO-8601 timestamps, persisted in `UserDefaults` so process death does not wipe evidence
-- `Shared/ExperimentStore.swift` — Bool/String get/set on `UserDefaults.standard` (App Group deferred until extensions)
-- `Shared/DeviceInfo.swift` — hardware id, OS, bundle id, simulator vs physical flag
-- On launch: `foundation_ok=true`, log `ATTN-M01 app_launched`
-
-**Device results (human confirmed):**
-- Three tabs work on physical device
-- Writing a test log shows an `ATTN-M01` line with timestamp
-- Logs persist across leave/return and until Clear
-- Clear empties the list
-- Copy all works
-- Grep still shows zero Screen Time API usage (correct for this stage)
-
----
-
-### M02 — Family Controls Authorization — PASS (2026-09-06)
-
-**Goal:** Family Controls capability + individual authorization request, status on Setup, errors visible on-device.
+**Goal:** manual apply/clear of Apple’s **default** system shield on tracked apps. Red-line: can we block selected apps?
 
 **Implemented:**
-- `AttentionAPITest/AttentionAPITest.entitlements` with `com.apple.developer.family-controls`
-- `CODE_SIGN_ENTITLEMENTS` wired in Debug/Release
-- `Shared/FamilyControlsAuth.swift` — status label + `requestAuthorization(for: .individual)`
-- Setup section **M02 — Family Controls auth**: shows `notDetermined` / `denied` / `approved`, Request button, red on-screen error text
-- Logs tagged `ATTN-M02` for status refresh, request start/success/failure
-- Explicitly **no** `FamilyActivityPicker`, shields, or ManagedSettings writes
+- `Shared/ShieldController.swift` — `ManagedSettingsStore().shield.applications` from tracked tokens
+- Experiments: **Shield selected: &lt;userLabels&gt;** / **Clear shield**
+- On-screen `shielded: yes/no` from **last successful write** (not OS readback)
+- Logs `ATTN-M04` `shield_apply` / `shield_clear` with labels + ids
+- Clear all tracked apps also clears shield
+- **No** ShieldConfiguration / ShieldAction / DeviceActivity extensions
 
-**Device results (human confirmed on iPhone 17):**
-- Cold launch: `authorizationStatus=notDetermined`
-- Tapped Request → system sheet completed
-- `request_success status=approved` (log `2026-09-06T18:16:05.029Z`)
-- No error text; Family Controls signing verified for local/dev use
+**Device checklist (human):**
+1. Open Xcode → ▶ Run; have ≥1 named tracked app
+2. Experiments → **Shield selected: …** → status shows shielded yes
+3. From Home, open each tracked app → default system shield (not the app)
+4. Open an untracked app → should launch normally
+5. **Clear shield** → tracked apps open normally
+6. Shield on → force-quit Attention → tracked app still shielded?
+7. Shield on → reboot → still shielded? Record yes/no
+8. Note any leaks (app opens despite shield)
 
 ---
 
@@ -107,59 +109,46 @@ Working agreement (also in `docs/DEV_ENVIRONMENT.md`): keep Xcode closed while C
 
 ```text
 prototypes/ios/AttentionAPITest/
-├── AttentionAPITest.xcodeproj/
 ├── AttentionAPITest/
-│   ├── AttentionAPITestApp.swift   # @main, scene-phase logs, foundation_ok
-│   ├── RootView.swift              # Setup / Experiments / Logs tabs
-│   ├── SetupView.swift             # M00 timestamp + M02 auth UI
-│   ├── ExperimentsView.swift       # log plumbing / future experiments
-│   ├── LogsView.swift              # Clear / Copy / list
-│   └── AttentionAPITest.entitlements  # Family Controls
+│   ├── ExperimentsView.swift       # M03 manage apps + M04 shield buttons
+│   ├── NamingAppsView.swift
+│   └── AttentionAPITest.entitlements
 ├── Shared/
-│   ├── TestLogger.swift
-│   ├── ExperimentStore.swift
-│   ├── DeviceInfo.swift
-│   └── FamilyControlsAuth.swift    # M02 AuthorizationCenter wrapper
-├── milestones/                     # M00–M13 agent specs (source of truth for next work)
-├── docs/
-│   ├── TEST_RESULTS.md             # pass/fail table
-│   ├── DEV_ENVIRONMENT.md
-│   └── ARCHITECTURE_DECISION.md    # fill after feasibility, not now
-└── Journal-Context/                # this catch-up journal
+│   ├── TrackedAppsStore.swift
+│   ├── ShieldController.swift      # M04
+│   ├── FamilyControlsAuth.swift
+│   ├── TokenNameProbe.swift
+│   └── …
+└── Journal-Context/IOS_PROGRESS.md
 ```
 
 ---
 
 ## Settled platform facts (do not reverse)
 
-From M00 spec / research — still relevant for M02+:
-
-1. **`ApplicationToken` does not expose name/bundle ID** to app code in the classic path. User-typed labels after the picker (M03) are intentional UX. iOS 26.4+ may offer `FamilyActivityData.shared.installedApplications` with display names — M03 must probe and record; naming screen ships regardless.
-2. **Token is not a reliable primary key.** Storage PK is our UUID; token is a live handle with refresh / picker re-bind fallback.
-3. **Simulator is not valid for Screen Time PASS** from M02 onward.
-4. This folder is a **feasibility lab**, not production MVP (no scoring engine, StoreKit, AI, backend).
-
-SDK-only facts already noted in `TEST_RESULTS.md` (device must still confirm):
-- DeviceActivity thresholds are **duration**-based, not open-count
-- Whether report numbers are host-readable = UNKNOWN (M08)
-- Token name readability on 26.4+ = UNKNOWN (M03)
-- `ManagedSettings.Token.refresh` exists on 26.5+ 
+1. User-typed labels required (`token_name_readable` = NO on this device).
+2. UUID is PK; token is live handle with picker re-bind.
+3. One-at-a-time add; picker Set order is not trustworthy.
+4. Cannot lock FamilyActivityPicker checkboxes — reject + in-app remove.
+5. Simulator not valid for Screen Time PASS from M02+.
+6. Feasibility lab only — no production MVP extras.
 
 ---
 
 ## Explicitly not done
 
-- M03 picker + naming + persistence
-- M04+ shields, extensions, DeviceActivity, open detection, stress tests
-- App Group capability
-- Android (ignored in this journal; separate later)
+- M04 device PASS
+- M05+ custom shield / actions / DeviceActivity / open detection
+- Family Controls Distribution entitlement
+- Android
 
 ---
 
 ## Instructions for the next agent
 
-1. Read root `AGENTS.md`, `PROTOTYPE_MASTER_PLAN.md`, this file, then `milestones/MILESTONE_03_APP_SELECTION_AND_PERSISTENCE.md`.
-2. Implement **M03 only** unless the human explicitly allows batching.
-3. Stop when it builds; give physical-device test steps; do **not** mark PASS until the human confirms on the iPhone.
-4. Update `docs/TEST_RESULTS.md` and append here when M03 is confirmed.
-5. Do not modify Android.
+1. If M04 awaiting device: wait for human confirmation before M05.
+2. After M04 PASS: read `milestones/MILESTONE_05_CUSTOM_SHIELD.md`.
+3. One milestone at a time unless human allows batching.
+4. Never mark PASS until human confirms on iPhone.
+5. Update `TEST_RESULTS.md` + this journal on confirm.
+6. Do not modify Android. Keep Xcode closed while editing.

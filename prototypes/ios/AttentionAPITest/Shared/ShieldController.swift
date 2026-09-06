@@ -1,0 +1,74 @@
+import Foundation
+import FamilyControls
+import ManagedSettings
+
+/// Manual apply/clear of the system (default) shield for tracked apps. M04 only —
+/// no custom ShieldConfiguration / ShieldAction yet.
+@MainActor
+final class ShieldController: ObservableObject {
+    static let shared = ShieldController()
+
+    private static let shieldedKey = "attention.m04.last_shield_write_active"
+    private static let labelsKey = "attention.m04.last_shield_write_labels"
+    private static let atKey = "attention.m04.last_shield_write_at"
+
+    private let store = ManagedSettingsStore()
+
+    /// Last successful write from this app — not an OS readback of shield state.
+    @Published private(set) var lastWriteActive: Bool
+    @Published private(set) var lastWriteLabels: String
+    @Published private(set) var lastWriteAt: String?
+
+    var statusLine: String {
+        if lastWriteActive {
+            let when = lastWriteAt ?? "?"
+            return "shielded: yes (last write \(when)) — \(lastWriteLabels)"
+        }
+        if let when = lastWriteAt {
+            return "shielded: no (last clear \(when))"
+        }
+        return "shielded: no (no write yet this install)"
+    }
+
+    private init() {
+        lastWriteActive = ExperimentStore.shared.bool(Self.shieldedKey)
+        lastWriteLabels = ExperimentStore.shared.string(Self.labelsKey) ?? ""
+        lastWriteAt = ExperimentStore.shared.string(Self.atKey)
+    }
+
+    /// Apply default system shield to current live tokens from tracked apps.
+    func shieldSelected(apps: [TrackedApp]) {
+        let tokens = Set(apps.map(\.token))
+        let labels = apps.map(\.userLabel)
+        let ids = apps.map { $0.id.uuidString }
+
+        store.shield.applications = tokens.isEmpty ? nil : tokens
+
+        lastWriteActive = !tokens.isEmpty
+        lastWriteLabels = labels.joined(separator: ", ")
+        lastWriteAt = TestLogger.isoString(Date())
+        persistWriteState()
+
+        TestLogger.shared.log(
+            "ATTN-M04",
+            "shield_apply count=\(tokens.count) labels=[\(lastWriteLabels)] ids=[\(ids.joined(separator: ","))]"
+        )
+    }
+
+    func clearShield() {
+        store.shield.applications = nil
+        lastWriteActive = false
+        lastWriteLabels = ""
+        lastWriteAt = TestLogger.isoString(Date())
+        persistWriteState()
+        TestLogger.shared.log("ATTN-M04", "shield_clear")
+    }
+
+    private func persistWriteState() {
+        ExperimentStore.shared.setBool(lastWriteActive, forKey: Self.shieldedKey)
+        ExperimentStore.shared.setString(lastWriteLabels, forKey: Self.labelsKey)
+        if let lastWriteAt {
+            ExperimentStore.shared.setString(lastWriteAt, forKey: Self.atKey)
+        }
+    }
+}

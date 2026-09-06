@@ -18,4 +18,6 @@ struct RootView: View {
 #Preview {
     RootView()
         .environmentObject(TestLogger.shared)
+        .environmentObject(TrackedAppsStore.shared)
+        .environmentObject(ShieldController.shared)
 }

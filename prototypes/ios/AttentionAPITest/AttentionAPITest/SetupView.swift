@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SetupView: View {
+    @EnvironmentObject private var trackedApps: TrackedAppsStore
     @Environment(\.scenePhase) private var scenePhase
     @State private var lastActiveTimestamp = TestLogger.isoString(Date())
     @State private var authStatusLabel = FamilyControlsAuth.statusLabel
@@ -12,8 +13,8 @@ struct SetupView: View {
             List {
                 Section("Milestone") {
                     row("App", "AttentionAPITest")
-                    row("Current", "Milestone 02 — Family Controls Authorization")
-                    row("Also", "M00 + M01 shell still present")
+                    row("Current", "Milestone 04 — Basic Shielding")
+                    row("Also", "M00–M03 still present")
                 }
 
                 // M00's evidence that the app is alive and re-activating.
@@ -34,12 +35,14 @@ struct SetupView: View {
                 Section("Build") {
                     row("Bundle id", DeviceInfo.bundleIdentifier)
                     row("Version", DeviceInfo.versionAndBuild)
-                    row("Entitlements", "AttentionAPITest.entitlements (Family Controls)")
+                    row("Entitlements", "Family Controls + App Group")
                 }
 
                 Section("Storage") {
                     row("Experiment state", ExperimentStore.shared.backingDescription)
+                    row("App Group id", ExperimentStore.appGroupID)
                     row("foundation_ok", ExperimentStore.shared.bool("foundation_ok") ? "true" : "false")
+                    row("Tracked apps", "\(trackedApps.apps.count) (UUID PK)")
                 }
 
                 Section("M02 — Family Controls auth") {
@@ -62,7 +65,7 @@ struct SetupView: View {
                 }
 
                 Section("Screen Time APIs") {
-                    Text("M02: AuthorizationCenter only. Picker is M03. Shields are M04.")
+                    Text("M02 auth + M03 picker/naming + M04 ManagedSettings default shield. Custom shield UI is M05.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -123,4 +126,5 @@ struct SetupView: View {
 
 #Preview {
     SetupView()
+        .environmentObject(TrackedAppsStore.shared)
 }
