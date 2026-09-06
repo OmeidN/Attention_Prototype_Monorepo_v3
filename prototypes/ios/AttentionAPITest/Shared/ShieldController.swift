@@ -2,8 +2,8 @@ import Foundation
 import FamilyControls
 import ManagedSettings
 
-/// Manual apply/clear of the system (default) shield for tracked apps. M04 only —
-/// no custom ShieldConfiguration / ShieldAction yet.
+/// Manual apply/clear of ManagedSettings shields for tracked apps.
+/// M05 adds ShieldConfigurationExtension for custom chrome; actions remain M06.
 @MainActor
 final class ShieldController: ObservableObject {
     static let shared = ShieldController()

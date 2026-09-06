@@ -17,6 +17,7 @@ struct ExperimentsView: View {
     @State private var writeCount = 0
     @State private var isSelectingToRemove = false
     @State private var removeIDs: Set<UUID> = []
+    @State private var shieldCopyVariant = ShieldCopySettings.readVariant() ?? "A"
 
     private var authApproved: Bool {
         FamilyControlsAuth.status == .approved
@@ -32,9 +33,9 @@ struct ExperimentsView: View {
         NavigationStack {
             List {
                 Section("Milestone") {
-                    Text("M04 — Basic shielding (+ M03 tracked apps)")
+                    Text("M05 — Custom shield configuration")
                         .font(.headline)
-                    Text("Apply/clear Apple’s default shield on tracked apps. One-at-a-time add still applies.")
+                    Text("Shield Configuration extension supplies title/subtitle/buttons. Button taps are M06. Record FULL / PARTIAL / FAIL.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -72,7 +73,7 @@ struct ExperimentsView: View {
 
                     Button(shieldButtonTitle) {
                         shield.shieldSelected(apps: trackedApps.apps)
-                        statusMessage = "Shield applied to: \(trackedApps.userLabels.joined(separator: ", ")). Open those apps from Home to verify."
+                        statusMessage = "Shield applied to: \(trackedApps.userLabels.joined(separator: ", ")). Open those apps from Home — look for custom M05 copy."
                     }
                     .disabled(trackedApps.apps.isEmpty || !authApproved)
 
@@ -81,7 +82,25 @@ struct ExperimentsView: View {
                         statusMessage = "Shield cleared (last write). Open tracked apps to confirm they launch."
                     }
 
-                    Text("Uses Apple’s default shield UI (custom copy is M05). Status is last successful write from this app — not an OS readback.")
+                    Text("Status is last successful write from this app — not an OS readback.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("M05 — Shield copy variant") {
+                    Picker("shield_copy_variant", selection: $shieldCopyVariant) {
+                        Text("A").tag("A")
+                        Text("B").tag("B")
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: shieldCopyVariant) { _, newValue in
+                        writeShieldVariant(newValue)
+                    }
+
+                    Text("Current App Group value: \(ShieldCopySettings.readVariant() ?? "nil")")
+                        .font(.system(.caption, design: .monospaced))
+
+                    Text("Change A↔B, then reopen a shielded app (no rebuild). Subtitle should flip. If you see NO_SHARED_STATE, App Group read failed in the extension.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -185,6 +204,10 @@ struct ExperimentsView: View {
             }
             .onAppear {
                 selection = trackedApps.lastSelection
+                if ShieldCopySettings.readVariant() == nil {
+                    writeShieldVariant("A")
+                }
+                shieldCopyVariant = ShieldCopySettings.readVariant() ?? "A"
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
@@ -383,6 +406,12 @@ struct ExperimentsView: View {
         probeSummary = result.summary
         TestLogger.shared.log("ATTN-M03", "token_name_probe \(result.summary)")
         statusMessage = "Name probe logged — see section below and Logs."
+    }
+
+    private func writeShieldVariant(_ variant: String) {
+        ShieldCopySettings.writeVariant(variant)
+        TestLogger.shared.log("ATTN-M05", "shield_config_variant_written variant=\(variant)")
+        statusMessage = "Wrote shield_copy_variant=\(variant) to App Group. Re-open a shielded app to see it."
     }
 
     private func row(_ label: String, _ value: String) -> some View {

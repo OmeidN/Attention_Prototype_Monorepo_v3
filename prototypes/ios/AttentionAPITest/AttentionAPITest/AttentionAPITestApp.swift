@@ -19,6 +19,10 @@ struct AttentionAPITestApp: App {
             "ATTN-M03",
             "store_backing \(ExperimentStore.shared.backingDescription)"
         )
+        if ShieldCopySettings.readVariant() == nil {
+            ShieldCopySettings.writeVariant("A")
+            TestLogger.shared.log("ATTN-M05", "shield_config_variant_written variant=A reason=launch_default")
+        }
     }
 
     var body: some Scene {

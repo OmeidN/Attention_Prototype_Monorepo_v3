@@ -13,8 +13,8 @@ struct SetupView: View {
             List {
                 Section("Milestone") {
                     row("App", "AttentionAPITest")
-                    row("Current", "Milestone 04 — Basic Shielding")
-                    row("Also", "M00–M03 still present")
+                    row("Current", "Milestone 05 — Custom Shield")
+                    row("Also", "M00–M04 still present")
                 }
 
                 // M00's evidence that the app is alive and re-activating.
@@ -65,7 +65,7 @@ struct SetupView: View {
                 }
 
                 Section("Screen Time APIs") {
-                    Text("M02 auth + M03 picker/naming + M04 ManagedSettings default shield. Custom shield UI is M05.")
+                    Text("M05: ShieldConfigurationExtension embedded. Custom title/subtitle/buttons; taps are M06.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
