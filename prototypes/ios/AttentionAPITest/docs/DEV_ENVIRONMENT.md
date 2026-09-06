@@ -4,13 +4,13 @@ Local Apple silicon Mac → Cursor + Xcode → signed build → physical iPhone 
 
 ## Recorded environment
 
-- Mac: Apple silicon (M2)
+- Mac: Apple silicon (M4), local
 - macOS: 26.6.2 (build 25G83)
 - Xcode: 26.6 (build 17F113)
 - iOS SDK: 26.5
 - Apple Developer: paid Apple Developer Program membership
 - Install method: Xcode → USB → physical iPhone
-- iPhone model / iOS version: recorded in `TEST_RESULTS.md` by the human
+- iPhone: iPhone 17 / iOS 26.6.1 (see `TEST_RESULTS.md`)
 
 ## Working agreement
 

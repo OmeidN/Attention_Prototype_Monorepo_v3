@@ -8,9 +8,9 @@ struct ExperimentsView: View {
         NavigationStack {
             List {
                 Section {
-                    Text("M01 — no experiments yet")
+                    Text("M02 auth lives on Setup")
                         .font(.headline)
-                    Text("Screen Time experiments start at M02. This tab exists so later milestones have somewhere to live.")
+                    Text("Request Family Controls authorization from the Setup tab. Picker / shields arrive in later milestones. This tab stays for log plumbing and future experiments.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
