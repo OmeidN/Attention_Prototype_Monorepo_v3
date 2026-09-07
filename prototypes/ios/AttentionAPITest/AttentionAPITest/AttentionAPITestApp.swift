@@ -9,10 +9,10 @@ struct AttentionAPITestApp: App {
     @StateObject private var logger = TestLogger.shared
     @StateObject private var trackedApps = TrackedAppsStore.shared
     @StateObject private var shield = ShieldController.shared
+    @StateObject private var deviceActivity = DeviceActivityMonitoring.shared
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
-        // M01: prove the store round-trips at least one value.
         ExperimentStore.shared.setBool(true, forKey: "foundation_ok")
         TestLogger.shared.log("ATTN-M01", "app_launched foundation_ok=true")
         TestLogger.shared.log(
@@ -23,6 +23,11 @@ struct AttentionAPITestApp: App {
             ShieldCopySettings.writeVariant("A")
             TestLogger.shared.log("ATTN-M05", "shield_config_variant_written variant=A reason=launch_default")
         }
+        DeviceActivityBridge.writeThresholdClaim()
+        TestLogger.shared.log(
+            "ATTN-M07",
+            "threshold_unit_claim \(DeviceActivityBridge.thresholdUnitClaim)"
+        )
     }
 
     var body: some Scene {
@@ -31,6 +36,7 @@ struct AttentionAPITestApp: App {
                 .environmentObject(logger)
                 .environmentObject(trackedApps)
                 .environmentObject(shield)
+                .environmentObject(deviceActivity)
         }
         .onChange(of: scenePhase) { _, newPhase in
             let name: String

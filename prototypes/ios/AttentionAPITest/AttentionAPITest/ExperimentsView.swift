@@ -6,6 +6,7 @@ struct ExperimentsView: View {
     @EnvironmentObject private var logger: TestLogger
     @EnvironmentObject private var trackedApps: TrackedAppsStore
     @EnvironmentObject private var shield: ShieldController
+    @EnvironmentObject private var deviceActivity: DeviceActivityMonitoring
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var selection = FamilyActivitySelection()
@@ -18,6 +19,11 @@ struct ExperimentsView: View {
     @State private var isSelectingToRemove = false
     @State private var removeIDs: Set<UUID> = []
     @State private var shieldCopyVariant = ShieldCopySettings.readVariant() ?? "A"
+    @State private var lastShieldActionLine = ShieldActionBridge.lastActionSummary()
+    @State private var lastActionLatencyText: String?
+    @State private var hostAppNeededNote = ShieldActionBridge.suite?.string(forKey: ShieldActionBridge.hostNeededNoteKey) ?? "no — confirmed M06"
+    @State private var m07StatusText = DeviceActivityBridge.statusSummary()
+    @State private var m07WaitingText = DeviceActivityBridge.waitingSinceLine()
 
     private var authApproved: Bool {
         FamilyControlsAuth.status == .approved
@@ -33,9 +39,13 @@ struct ExperimentsView: View {
         NavigationStack {
             List {
                 Section("Milestone") {
-                    Text("M05 — Custom shield configuration")
+                    Text("M07 — Device Activity Thresholds")
                         .font(.headline)
-                    Text("Shield Configuration extension supplies title/subtitle/buttons. Button taps are M06. Record FULL / PARTIAL / FAIL.")
+                    Text(DeviceActivityBridge.thresholdUnitClaim)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                    Text("Probe threshold: \(deviceActivity.thresholdMinutes) minute(s) of use per tracked app (not opens).")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -100,7 +110,75 @@ struct ExperimentsView: View {
                     Text("Current App Group value: \(ShieldCopySettings.readVariant() ?? "nil")")
                         .font(.system(.caption, design: .monospaced))
 
-                    Text("Change A↔B, then reopen a shielded app (no rebuild). Subtitle should flip. If you see NO_SHARED_STATE, App Group read failed in the extension.")
+                    Text("Change A↔B, then reopen a shielded app (no rebuild). Subtitle should flip.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("M06 — Last shield action") {
+                    Text(lastShieldActionLine)
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
+
+                    if let lastActionLatencyText {
+                        Text(lastActionLatencyText)
+                            .font(.system(.caption, design: .monospaced))
+                    }
+
+                    Text("host_app_needed: \(hostAppNeededNote)")
+                        .font(.caption)
+
+                    TextField("Note if Continue required opening Attention…", text: $hostAppNeededNote)
+                        .onChange(of: hostAppNeededNote) { _, newValue in
+                            ShieldActionBridge.suite?.set(newValue, forKey: ShieldActionBridge.hostNeededNoteKey)
+                        }
+
+                    Button("Refresh action from App Group") {
+                        refreshShieldActionFromBridge(reason: "manual")
+                    }
+
+                    Text("Continue = clear token + `.close` (backs out; extra Home tap to open). Re-shield is M10.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("M07 — Device Activity monitor") {
+                    Text(m07StatusText)
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
+
+                    Text(m07WaitingText)
+                        .font(.system(.caption, design: .monospaced))
+
+                    Button(deviceActivity.isMonitoring ? "Restart monitor for tracked apps" : "Start monitor (all-day)") {
+                        deviceActivity.start(apps: trackedApps.apps)
+                        refreshM07FromBridge(reason: "start")
+                        if let err = deviceActivity.lastError {
+                            statusMessage = "Monitor start failed: \(err)"
+                        } else {
+                            statusMessage = "Monitoring started — use a tracked app for >\(deviceActivity.thresholdMinutes) min. Do not call this an open."
+                        }
+                    }
+                    .disabled(trackedApps.apps.isEmpty || !authApproved)
+
+                    Button("Stop monitor", role: .destructive) {
+                        deviceActivity.stop()
+                        refreshM07FromBridge(reason: "stop")
+                        statusMessage = "Monitoring stopped (no orphan schedule)."
+                    }
+
+                    Button("Refresh callbacks from App Group") {
+                        refreshM07FromBridge(reason: "manual")
+                    }
+
+                    if let err = deviceActivity.lastError {
+                        Text("last_error: \(err)")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .textSelection(.enabled)
+                    }
+
+                    Text("Callbacks write timestamps to App Group only. Return to Attention to see them. Idle without tracked apps should not fire threshold.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -208,12 +286,17 @@ struct ExperimentsView: View {
                     writeShieldVariant("A")
                 }
                 shieldCopyVariant = ShieldCopySettings.readVariant() ?? "A"
+                deviceActivity.refreshFromStore()
+                refreshShieldActionFromBridge(reason: "onAppear")
+                refreshM07FromBridge(reason: "onAppear")
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
                     if !authApproved {
                         statusMessage = "Authorization is \(FamilyControlsAuth.statusLabel). Re-approve on Setup if needed."
                     }
+                    refreshShieldActionFromBridge(reason: "scene_active")
+                    refreshM07FromBridge(reason: "scene_active")
                 }
             }
         }
@@ -414,6 +497,34 @@ struct ExperimentsView: View {
         statusMessage = "Wrote shield_copy_variant=\(variant) to App Group. Re-open a shielded app to see it."
     }
 
+    private func refreshShieldActionFromBridge(reason: String) {
+        lastShieldActionLine = ShieldActionBridge.lastActionSummary()
+        if let consumed = ShieldActionBridge.consumeNewActionForHost() {
+            lastShieldActionLine = consumed.summary
+            if let latency = consumed.latencySeconds {
+                lastActionLatencyText = String(format: "host_seen_latency≈%.2fs (extension write → host foreground)", latency)
+            }
+            TestLogger.shared.log(
+                "ATTN-M06",
+                "\(consumed.summary) reason=\(reason) latency=\(consumed.latencySeconds.map { String(format: "%.2f" , $0) } ?? "n/a")"
+            )
+            statusMessage = "Read shield action from App Group."
+        }
+    }
+
+    private func refreshM07FromBridge(reason: String) {
+        deviceActivity.refreshFromStore()
+        m07StatusText = DeviceActivityBridge.statusSummary()
+        m07WaitingText = DeviceActivityBridge.waitingSinceLine()
+        let thresholdAt = DeviceActivityBridge.suite?.string(forKey: DeviceActivityBridge.lastThresholdAtKey)
+        let intervalStart = DeviceActivityBridge.suite?.string(forKey: DeviceActivityBridge.lastIntervalStartKey)
+        let kind = DeviceActivityBridge.suite?.string(forKey: DeviceActivityBridge.lastCallbackKindKey) ?? "none"
+        TestLogger.shared.log(
+            "ATTN-M07",
+            "status_refresh reason=\(reason) monitoring=\(deviceActivity.isMonitoring) last_callback=\(kind) intervalDidStart=\(intervalStart ?? "none") eventDidReachThreshold=\(thresholdAt ?? "none")"
+        )
+    }
+
     private func row(_ label: String, _ value: String) -> some View {
         HStack {
             Text(label)
@@ -429,4 +540,5 @@ struct ExperimentsView: View {
         .environmentObject(TestLogger.shared)
         .environmentObject(TrackedAppsStore.shared)
         .environmentObject(ShieldController.shared)
+        .environmentObject(DeviceActivityMonitoring.shared)
 }

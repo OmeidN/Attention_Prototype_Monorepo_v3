@@ -13,8 +13,8 @@ struct SetupView: View {
             List {
                 Section("Milestone") {
                     row("App", "AttentionAPITest")
-                    row("Current", "Milestone 05 — Custom Shield")
-                    row("Also", "M00–M04 still present")
+                    row("Current", "Milestone 07 — Device Activity Thresholds")
+                    row("Also", "M00–M06 still present")
                 }
 
                 // M00's evidence that the app is alive and re-activating.
@@ -65,7 +65,11 @@ struct SetupView: View {
                 }
 
                 Section("Screen Time APIs") {
-                    Text("M05: ShieldConfigurationExtension embedded. Custom title/subtitle/buttons; taps are M06.")
+                    Text("M07 threshold_unit (SDK): \(DeviceActivityBridge.thresholdUnitClaim)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                    Text("M06: Continue clears shield token + `.close` (backs out; extra tap to open). host_app_needed=no.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
