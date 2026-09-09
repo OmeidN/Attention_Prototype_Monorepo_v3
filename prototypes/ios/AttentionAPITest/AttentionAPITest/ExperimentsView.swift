@@ -1,12 +1,14 @@
 import SwiftUI
 import FamilyControls
 import ManagedSettings
+import DeviceActivity
 
 struct ExperimentsView: View {
     @EnvironmentObject private var logger: TestLogger
     @EnvironmentObject private var trackedApps: TrackedAppsStore
     @EnvironmentObject private var shield: ShieldController
     @EnvironmentObject private var deviceActivity: DeviceActivityMonitoring
+    @EnvironmentObject private var openTrial: OpenTrialStore
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var selection = FamilyActivitySelection()
@@ -24,6 +26,10 @@ struct ExperimentsView: View {
     @State private var hostAppNeededNote = ShieldActionBridge.suite?.string(forKey: ShieldActionBridge.hostNeededNoteKey) ?? "no — confirmed M06"
     @State private var m07StatusText = DeviceActivityBridge.statusSummary()
     @State private var m07WaitingText = DeviceActivityBridge.waitingSinceLine()
+    @State private var m08SideChannelText = DeviceActivityReportBridge.hostSideChannelSummary()
+    @State private var hostActivityProbeText = "host_activityData: not run yet"
+    @State private var lastSeenThresholdAt: String? = DeviceActivityBridge.suite?.string(forKey: DeviceActivityBridge.lastThresholdAtKey)
+    @State private var isProbingHostActivity = false
 
     private var authApproved: Bool {
         FamilyControlsAuth.status == .approved
@@ -35,17 +41,28 @@ struct ExperimentsView: View {
         return "Shield selected: \(labels.joined(separator: ", "))"
     }
 
+    private var reportFilter: DeviceActivityFilter {
+        let start = Calendar.current.startOfDay(for: Date())
+        return DeviceActivityFilter(
+            segment: .daily(during: DateInterval(start: start, end: Date())),
+            applications: trackedApps.trackedTokens
+        )
+    }
+
     var body: some View {
         NavigationStack {
             List {
                 Section("Milestone") {
-                    Text("M07 — Device Activity Thresholds")
+                    Text("M08 — Report + open trial")
                         .font(.headline)
-                    Text(DeviceActivityBridge.thresholdUnitClaim)
+                    Text("Not validated as opens until the trial says so.")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                    Text(DeviceActivityReportBridge.reportAPIHostReadableClaim)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
-                    Text("Probe threshold: \(deviceActivity.thresholdMinutes) minute(s) of use per tracked app (not opens).")
+                    Text("M07 fact: threshold_unit=duration (rule_cannot_see_launches).")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -183,6 +200,71 @@ struct ExperimentsView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                Section("M08 — DeviceActivityReport (embed)") {
+                    Text("Not validated as opens until the trial says so.")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+
+                    DeviceActivityReport(
+                        .init(DeviceActivityReportBridge.contextName),
+                        filter: reportFilter
+                    )
+                    .frame(minHeight: 88)
+
+                    Text(m08SideChannelText)
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
+
+                    Button("Refresh App Group side-channel from report") {
+                        m08SideChannelText = DeviceActivityReportBridge.hostSideChannelSummary()
+                        TestLogger.shared.log("ATTN-M08", "sidechannel_refresh \(m08SideChannelText.replacingOccurrences(of: "\n", with: " | "))")
+                        statusMessage = "Read report App Group keys (only updates after report extension ran makeConfiguration)."
+                    }
+
+                    Text(hostActivityProbeText)
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
+
+                    Button(isProbingHostActivity ? "Probing host activityData…" : "Probe host DeviceActivityData.activityData (iOS 26.4+)") {
+                        Task { await runHostActivityProbe() }
+                    }
+                    .disabled(trackedApps.apps.isEmpty || !authApproved || isProbingHostActivity)
+                }
+
+                Section("M08 — Open trial (ground truth)") {
+                    Text("Rule: M07 cannot see launches (duration thresholds). Tap Truth +1 each time you launch a tracked app from Home. Optionally Restart monitor between launches if you want threshold_event chances.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Text(openTrial.summaryLine())
+                        .font(.system(.body, design: .monospaced))
+                        .textSelection(.enabled)
+
+                    Button("Truth +1 (I just launched a tracked app)") {
+                        openTrial.bumpTruth()
+                        statusMessage = openTrial.summaryLine()
+                    }
+
+                    Button("Mark threshold_event detect +1 (saw new M07 fire)") {
+                        openTrial.bumpThresholdDetect(reason: "manual")
+                        statusMessage = openTrial.summaryLine()
+                    }
+
+                    Button("Reset trial counters", role: .destructive) {
+                        openTrial.reset()
+                        statusMessage = openTrial.summaryLine()
+                    }
+
+                    TextField("Notes (recents contrast, shielded?, decision…)", text: $openTrial.notes)
+                        .onChange(of: openTrial.notes) { _, _ in
+                            openTrial.persistNotes()
+                        }
+
+                    Text("Stop summary when done: truth / detections / misses / false positives. Decide opens validated | not opens | inconclusive.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("Manage tracked apps") {
                     Button(trackedApps.apps.isEmpty ? "Add one app…" : "Add another app…") {
                         beginAddOneApp()
@@ -289,6 +371,7 @@ struct ExperimentsView: View {
                 deviceActivity.refreshFromStore()
                 refreshShieldActionFromBridge(reason: "onAppear")
                 refreshM07FromBridge(reason: "onAppear")
+                m08SideChannelText = DeviceActivityReportBridge.hostSideChannelSummary()
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
@@ -519,10 +602,31 @@ struct ExperimentsView: View {
         let thresholdAt = DeviceActivityBridge.suite?.string(forKey: DeviceActivityBridge.lastThresholdAtKey)
         let intervalStart = DeviceActivityBridge.suite?.string(forKey: DeviceActivityBridge.lastIntervalStartKey)
         let kind = DeviceActivityBridge.suite?.string(forKey: DeviceActivityBridge.lastCallbackKindKey) ?? "none"
+        if let thresholdAt {
+            if let previous = lastSeenThresholdAt, previous != thresholdAt {
+                openTrial.bumpThresholdDetect(reason: "auto_\(reason)")
+            }
+            lastSeenThresholdAt = thresholdAt
+        }
         TestLogger.shared.log(
             "ATTN-M07",
             "status_refresh reason=\(reason) monitoring=\(deviceActivity.isMonitoring) last_callback=\(kind) intervalDidStart=\(intervalStart ?? "none") eventDidReachThreshold=\(thresholdAt ?? "none")"
         )
+    }
+
+    @MainActor
+    private func runHostActivityProbe() async {
+        isProbingHostActivity = true
+        defer { isProbingHostActivity = false }
+        if #available(iOS 26.4, *) {
+            let result = await HostActivityDataProbe.run(tokens: trackedApps.trackedTokens)
+            hostActivityProbeText = result.summary
+            TestLogger.shared.log("ATTN-M08", result.summary)
+            statusMessage = result.error == nil ? "Host activityData probe finished." : "Host activityData failed — see text."
+        } else {
+            hostActivityProbeText = HostActivityDataProbe.unsupportedSummary()
+            TestLogger.shared.log("ATTN-M08", hostActivityProbeText)
+        }
     }
 
     private func row(_ label: String, _ value: String) -> some View {
@@ -541,4 +645,5 @@ struct ExperimentsView: View {
         .environmentObject(TrackedAppsStore.shared)
         .environmentObject(ShieldController.shared)
         .environmentObject(DeviceActivityMonitoring.shared)
+        .environmentObject(OpenTrialStore.shared)
 }

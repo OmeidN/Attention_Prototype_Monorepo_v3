@@ -3,7 +3,7 @@
 Living notes for Cursor agents picking up this prototype with blank context.
 **Read this before implementing the next milestone.** Canonical pass/fail: `docs/TEST_RESULTS.md`.
 
-Last updated: 2026-09-07 (restored M06+M07 after accidental undo)
+Last updated: 2026-09-09
 
 ---
 
@@ -11,9 +11,9 @@ Last updated: 2026-09-07 (restored M06+M07 after accidental undo)
 
 | Item | Value |
 |---|---|
-| Current status | **M00–M06 PASS** on physical device; **M07 implemented — awaiting device confirmation** (or finish checklist if already partially tested) |
-| Next action | Human: Xcode Run → M07 physical-device checklist; do not start M08 until M07 PASS |
-| Extensions | ShieldConfiguration + ShieldAction + DeviceActivityMonitor |
+| Current status | **M00–M08 PASS** |
+| Next action | Implement **M09** (session / access-window fallback) — one milestone only |
+| Extensions | ShieldConfiguration + ShieldAction + DeviceActivityMonitor + DeviceActivityReport (ExtensionKit → `App/Extensions/`) |
 | App Group | `group.com.attention.apitest` |
 | Bundle id | `com.attention.apitest` |
 | Team ID | `VPG6W79282` |
@@ -26,31 +26,21 @@ Last updated: 2026-09-07 (restored M06+M07 after accidental undo)
 2. UUID is PK; one-at-a-time add; cannot lock picker checkboxes.
 3. Manual ManagedSettings shield works and survives reboot (M04).
 4. Custom shield chrome FULL (M05); App Group A/B works.
-5. **Shield actions:** Never Mind / Continue work **without** Attention in foreground (`host_app_needed=no`). Continue clears that app’s shield token and returns `.close` → backs out; **extra Home tap** to open. After Continue, stays unshielded until manual re-shield (M10).
-6. Host-seen latency (~10s sample) is “open Attention later,” not Continue→unblock latency.
-7. **SDK:** `DeviceActivityEvent.threshold` is `DateComponents` only → **duration**, not opens. Device must confirm callbacks.
+5. Shield actions: Continue = `.close` + unblock; extra Home tap; `host_app_needed=no` (M06).
+6. **`threshold_unit=duration`** (M07). Once-per-event-per-interval.
+7. **`not opens` (M08)** — no validated launch/open signal. Report = display-only; host cannot read report numbers; side-channel write failed on device; host `activityData` sandboxed. M07 thresholds ≠ launches. Do not call pickups/thresholds opens.
+8. Canonical product fallback ladder: Opens → Sessions → **Access Windows** → Usage-Time. M09 owns the next honest unit.
 
 ---
 
-## Completed (high level)
+## Completed
 
-- **M00–M05 PASS**
-- **M06 PASS (2026-09-06):** Never Mind / Continue; force-closed OK; Continue = dismiss + unblock (not auto-open)
-- **M07 code restored:** monitor extension + 1-min per-app events + Start/Stop UI. **Not PASS until human confirms.**
+- M00–M08 PASS (M08 human 2026-09-09, verdict `not opens`)
 
 ---
 
-## Problems / noise
+## Instructions
 
-- CFPrefs App Group warnings — ignore if store_backing shows App Group
-- FamilyControlsAgent helper noise on name probe — expected NO path
-- ShellSceneKit ProfileActivation decode noise — system
-- **2026-09-07:** accidental undo wiped uncommitted M06/M07; restored from chat. Prefer committing after each milestone PASS.
-
----
-
-## Instructions for next agent
-
-1. If human reports M07 results → update TEST_RESULTS + this file; M08 only when asked.
-2. Keep Xcode closed while editing. Do not modify Android.
-3. Never call a duration threshold an `open`.
+1. Do not start M10 until M09 PASS on device.
+2. Never label signals as opens/session_end without evidence.
+3. Keep Xcode closed while editing. No Android.

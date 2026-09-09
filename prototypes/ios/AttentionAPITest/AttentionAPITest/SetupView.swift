@@ -13,8 +13,8 @@ struct SetupView: View {
             List {
                 Section("Milestone") {
                     row("App", "AttentionAPITest")
-                    row("Current", "Milestone 07 — Device Activity Thresholds")
-                    row("Also", "M00–M06 still present")
+                    row("Current", "Milestone 08 — Open Detection / Report")
+                    row("Also", "M00–M07 still present")
                 }
 
                 // M00's evidence that the app is alive and re-activating.
@@ -65,11 +65,11 @@ struct SetupView: View {
                 }
 
                 Section("Screen Time APIs") {
-                    Text("M07 threshold_unit (SDK): \(DeviceActivityBridge.thresholdUnitClaim)")
+                    Text(DeviceActivityReportBridge.reportAPIHostReadableClaim)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
-                    Text("M06: Continue clears shield token + `.close` (backs out; extra tap to open). host_app_needed=no.")
+                    Text("M07: threshold_unit=duration (PASS). M08: Report embed + trial — pickups NOT opens until validated.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

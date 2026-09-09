@@ -10,6 +10,7 @@ struct AttentionAPITestApp: App {
     @StateObject private var trackedApps = TrackedAppsStore.shared
     @StateObject private var shield = ShieldController.shared
     @StateObject private var deviceActivity = DeviceActivityMonitoring.shared
+    @StateObject private var openTrial = OpenTrialStore.shared
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -28,6 +29,10 @@ struct AttentionAPITestApp: App {
             "ATTN-M07",
             "threshold_unit_claim \(DeviceActivityBridge.thresholdUnitClaim)"
         )
+        TestLogger.shared.log(
+            "ATTN-M08",
+            DeviceActivityReportBridge.reportAPIHostReadableClaim
+        )
     }
 
     var body: some Scene {
@@ -37,6 +42,7 @@ struct AttentionAPITestApp: App {
                 .environmentObject(trackedApps)
                 .environmentObject(shield)
                 .environmentObject(deviceActivity)
+                .environmentObject(openTrial)
         }
         .onChange(of: scenePhase) { _, newPhase in
             let name: String

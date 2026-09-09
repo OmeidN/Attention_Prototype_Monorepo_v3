@@ -5,8 +5,8 @@ Current milestone: M00 — Environment Setup
 Status: IN PROGRESS — awaiting physical-device confirmation
 
 ## iOS
-Current milestone: M07 — Device Activity Thresholds
-Status: M00–M06 PASS on physical iPhone (2026-09-06). M06+M07 code restored 2026-09-07 after accidental undo; M07 awaiting physical-device confirmation.
+Current milestone: M09 — Session / Access Fallback
+Status: M00–M08 PASS on physical iPhone. M08 verdict `not opens` (2026-09-09). Next: access windows / usage-time fallback.
 
 ## Cross-Platform Decision
 Status: NOT STARTED
