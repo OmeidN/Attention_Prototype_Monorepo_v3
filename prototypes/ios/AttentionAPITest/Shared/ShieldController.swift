@@ -64,6 +64,27 @@ final class ShieldController: ObservableObject {
         TestLogger.shared.log("ATTN-M04", "shield_clear")
     }
 
+    /// Union tokens into the current shield set (M09 access-window end / partial re-shield).
+    func addTokensToShield(apps: [TrackedApp], logTag: String = "ATTN-M04") {
+        guard !apps.isEmpty else { return }
+        var applications = store.shield.applications ?? Set()
+        for app in apps {
+            applications.insert(app.token)
+        }
+        store.shield.applications = applications
+
+        lastWriteActive = true
+        lastWriteLabels = apps.map(\.userLabel).joined(separator: ", ")
+        lastWriteAt = TestLogger.isoString(Date())
+        persistWriteState()
+
+        let ids = apps.map { $0.id.uuidString }.joined(separator: ",")
+        TestLogger.shared.log(
+            logTag,
+            "shield_add count=\(apps.count) labels=[\(lastWriteLabels)] ids=[\(ids)]"
+        )
+    }
+
     private func persistWriteState() {
         ExperimentStore.shared.setBool(lastWriteActive, forKey: Self.shieldedKey)
         ExperimentStore.shared.setString(lastWriteLabels, forKey: Self.labelsKey)

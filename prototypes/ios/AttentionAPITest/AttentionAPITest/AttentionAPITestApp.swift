@@ -11,6 +11,7 @@ struct AttentionAPITestApp: App {
     @StateObject private var shield = ShieldController.shared
     @StateObject private var deviceActivity = DeviceActivityMonitoring.shared
     @StateObject private var openTrial = OpenTrialStore.shared
+    @StateObject private var accessWindow = AccessWindowController.shared
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -33,6 +34,10 @@ struct AttentionAPITestApp: App {
             "ATTN-M08",
             DeviceActivityReportBridge.reportAPIHostReadableClaim
         )
+        TestLogger.shared.log(
+            "ATTN-M09",
+            "access_window_fallback preferred_duration_s=\(AccessWindowBridge.preferredDurationSeconds()) — not opens"
+        )
     }
 
     var body: some Scene {
@@ -43,6 +48,7 @@ struct AttentionAPITestApp: App {
                 .environmentObject(shield)
                 .environmentObject(deviceActivity)
                 .environmentObject(openTrial)
+                .environmentObject(accessWindow)
         }
         .onChange(of: scenePhase) { _, newPhase in
             let name: String
@@ -54,6 +60,20 @@ struct AttentionAPITestApp: App {
             }
             milestone00Logger.log("\(name, privacy: .public)")
             TestLogger.shared.log("ATTN-M00", name)
+
+            if newPhase == .active {
+                AccessWindowController.shared.sync(
+                    reason: "app_scene_active",
+                    attentionForeground: true,
+                    apps: TrackedAppsStore.shared.apps
+                )
+            } else if newPhase == .background {
+                AccessWindowController.shared.sync(
+                    reason: "app_scene_background",
+                    attentionForeground: false,
+                    apps: TrackedAppsStore.shared.apps
+                )
+            }
         }
     }
 }

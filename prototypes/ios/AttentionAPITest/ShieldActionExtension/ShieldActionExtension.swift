@@ -16,9 +16,10 @@ final class ShieldActionExtension: ShieldActionDelegate {
             completionHandler(.close)
 
         case .secondaryButtonPressed:
-            _ = ShieldActionBridge.record(action: "continue", token: application)
+            let event = ShieldActionBridge.record(action: "continue", token: application)
             unblock(application)
-            // `.close` dismisses the shield UI; do not re-apply here (M10 owns re-shield policy).
+            // M09: start access window in App Group; host timer re-shields (not mid-use yank).
+            AccessWindowBridge.beginWindow(trackedAppId: event.trackedAppId, userLabel: event.userLabel)
             completionHandler(.close)
 
         @unknown default:

@@ -9,6 +9,7 @@ struct ExperimentsView: View {
     @EnvironmentObject private var shield: ShieldController
     @EnvironmentObject private var deviceActivity: DeviceActivityMonitoring
     @EnvironmentObject private var openTrial: OpenTrialStore
+    @EnvironmentObject private var accessWindow: AccessWindowController
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var selection = FamilyActivitySelection()
@@ -53,16 +54,12 @@ struct ExperimentsView: View {
         NavigationStack {
             List {
                 Section("Milestone") {
-                    Text("M08 — Report + open trial")
+                    Text("M09 — Access window fallback")
                         .font(.headline)
-                    Text("Not validated as opens until the trial says so.")
+                    Text("Exact opens failed (M08). Honest unit under test: access_window / usage_time — not opens.")
                         .font(.caption)
                         .foregroundStyle(.red)
-                    Text(DeviceActivityReportBridge.reportAPIHostReadableClaim)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                    Text("M07 fact: threshold_unit=duration (rule_cannot_see_launches).")
+                    Text(accessWindow.ruleText)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -154,7 +151,57 @@ struct ExperimentsView: View {
                         refreshShieldActionFromBridge(reason: "manual")
                     }
 
-                    Text("Continue = clear token + `.close` (backs out; extra Home tap to open). Re-shield is M10.")
+                    Text("Continue = clear token + `.close` + starts M09 access window. Host re-shields after window (deferred if Attention background).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("M09 — Access window") {
+                    Text(accessWindow.statusText)
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
+
+                    Picker("Window length", selection: Binding(
+                        get: { accessWindow.durationSeconds },
+                        set: { accessWindow.setDurationSeconds($0) }
+                    )) {
+                        ForEach(AccessWindowBridge.durationChoices, id: \.seconds) { choice in
+                            Text(choice.label).tag(choice.seconds)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    Picker("Honest unit (your pick)", selection: Binding(
+                        get: { accessWindow.honestUnit },
+                        set: { accessWindow.setHonestUnit($0) }
+                    )) {
+                        Text("access_window").tag("access_window")
+                        Text("usage_time").tag("usage_time")
+                        Text("session").tag("session")
+                    }
+
+                    Button("Refresh window from App Group") {
+                        accessWindow.sync(
+                            reason: "manual",
+                            attentionForeground: scenePhase == .active,
+                            apps: trackedApps.apps
+                        )
+                        statusMessage = "Synced access window state."
+                    }
+
+                    if let first = trackedApps.apps.first {
+                        Button("Debug: start \(AccessWindowBridge.preferredDurationSeconds())s window for \(first.userLabel)") {
+                            accessWindow.debugStartWindow(for: first)
+                            statusMessage = "Debug window armed for \(first.userLabel). Leave Attention in background to test defer; return to re-shield."
+                        }
+                    }
+
+                    Button("Cancel active window", role: .destructive) {
+                        accessWindow.cancelActiveWindow(reason: "manual_cancel")
+                        statusMessage = "Access window cancelled (no reshield)."
+                    }
+
+                    Text("After Continue (or debug start): stay in app inside window → usable; leave/return inside window → still unshielded; after end + Attention foreground → shielded from Home. Optional: Start M07 monitor for usage_checkpoint logs.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -372,6 +419,11 @@ struct ExperimentsView: View {
                 refreshShieldActionFromBridge(reason: "onAppear")
                 refreshM07FromBridge(reason: "onAppear")
                 m08SideChannelText = DeviceActivityReportBridge.hostSideChannelSummary()
+                accessWindow.sync(
+                    reason: "onAppear",
+                    attentionForeground: true,
+                    apps: trackedApps.apps
+                )
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
@@ -380,6 +432,17 @@ struct ExperimentsView: View {
                     }
                     refreshShieldActionFromBridge(reason: "scene_active")
                     refreshM07FromBridge(reason: "scene_active")
+                    accessWindow.sync(
+                        reason: "scene_active",
+                        attentionForeground: true,
+                        apps: trackedApps.apps
+                    )
+                } else if phase == .background {
+                    accessWindow.sync(
+                        reason: "scene_background",
+                        attentionForeground: false,
+                        apps: trackedApps.apps
+                    )
                 }
             }
         }
@@ -592,6 +655,11 @@ struct ExperimentsView: View {
                 "\(consumed.summary) reason=\(reason) latency=\(consumed.latencySeconds.map { String(format: "%.2f" , $0) } ?? "n/a")"
             )
             statusMessage = "Read shield action from App Group."
+            accessWindow.sync(
+                reason: "after_shield_action_\(reason)",
+                attentionForeground: scenePhase == .active,
+                apps: trackedApps.apps
+            )
         }
     }
 
@@ -602,9 +670,15 @@ struct ExperimentsView: View {
         let thresholdAt = DeviceActivityBridge.suite?.string(forKey: DeviceActivityBridge.lastThresholdAtKey)
         let intervalStart = DeviceActivityBridge.suite?.string(forKey: DeviceActivityBridge.lastIntervalStartKey)
         let kind = DeviceActivityBridge.suite?.string(forKey: DeviceActivityBridge.lastCallbackKindKey) ?? "none"
+        let thresholdLabels = DeviceActivityBridge.suite?.string(forKey: DeviceActivityBridge.lastThresholdLabelsKey) ?? ""
         if let thresholdAt {
             if let previous = lastSeenThresholdAt, previous != thresholdAt {
                 openTrial.bumpThresholdDetect(reason: "auto_\(reason)")
+                accessWindow.noteUsageCheckpointIfNeeded(
+                    thresholdAt: thresholdAt,
+                    labels: thresholdLabels,
+                    reason: reason
+                )
             }
             lastSeenThresholdAt = thresholdAt
         }
@@ -646,4 +720,5 @@ struct ExperimentsView: View {
         .environmentObject(ShieldController.shared)
         .environmentObject(DeviceActivityMonitoring.shared)
         .environmentObject(OpenTrialStore.shared)
+        .environmentObject(AccessWindowController.shared)
 }
