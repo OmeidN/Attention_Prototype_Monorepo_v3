@@ -8,20 +8,20 @@
 
 /* Begin PBXBuildFile section */
 		1A2B3C4D5E6F708192A30040 /* ShieldConfigurationExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30020 /* ShieldConfigurationExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		1A2B3C4D5E6F708192A30041 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30042 /* ManagedSettings.framework */; };
+		1A2B3C4D5E6F708192A30043 /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30044 /* ManagedSettingsUI.framework */; };
 		1A2B3C4D5E6F708192A30057 /* ShieldActionExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30050 /* ShieldActionExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		1A2B3C4D5E6F708192A30062 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30042 /* ManagedSettings.framework */; };
 		1A2B3C4D5E6F708192A30080 /* DeviceActivityMonitorExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30081 /* DeviceActivityMonitorExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		1A2B3C4D5E6F708192A30090 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30091 /* DeviceActivity.framework */; };
+		1A2B3C4D5E6F708192A30096 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30042 /* ManagedSettings.framework */; };
+		1A2B3C4D5E6F708192A30097 /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30098 /* FamilyControls.framework */; };
 		1A2B3C4D5E6F708192A300A0 /* DeviceActivityReportExtension.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A300A1 /* DeviceActivityReportExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		1A2B3C4D5E6F708192A300A8 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30091 /* DeviceActivity.framework */; };
 		1A2B3C4D5E6F708192A300A9 /* ExtensionKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A300AA /* ExtensionKit.framework */; };
 		1A2B3C4D5E6F708192A300AB /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A300AC /* SwiftUI.framework */; };
 		1A2B3C4D5E6F708192A300AD /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30042 /* ManagedSettings.framework */; };
 		1A2B3C4D5E6F708192A300AE /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30098 /* FamilyControls.framework */; };
-		1A2B3C4D5E6F708192A30041 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30042 /* ManagedSettings.framework */; };
-		1A2B3C4D5E6F708192A30043 /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30044 /* ManagedSettingsUI.framework */; };
-		1A2B3C4D5E6F708192A30062 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30042 /* ManagedSettings.framework */; };
-		1A2B3C4D5E6F708192A30090 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30091 /* DeviceActivity.framework */; };
-		1A2B3C4D5E6F708192A30096 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30042 /* ManagedSettings.framework */; };
-		1A2B3C4D5E6F708192A30097 /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30098 /* FamilyControls.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -85,15 +85,15 @@
 /* Begin PBXFileReference section */
 		1A2B3C4D5E6F708192A30003 /* AttentionAPITest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AttentionAPITest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A2B3C4D5E6F708192A30020 /* ShieldConfigurationExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShieldConfigurationExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A2B3C4D5E6F708192A30042 /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
+		1A2B3C4D5E6F708192A30044 /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = System/Library/Frameworks/ManagedSettingsUI.framework; sourceTree = SDKROOT; };
 		1A2B3C4D5E6F708192A30050 /* ShieldActionExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShieldActionExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A2B3C4D5E6F708192A30081 /* DeviceActivityMonitorExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DeviceActivityMonitorExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A2B3C4D5E6F708192A30091 /* DeviceActivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceActivity.framework; path = System/Library/Frameworks/DeviceActivity.framework; sourceTree = SDKROOT; };
+		1A2B3C4D5E6F708192A30098 /* FamilyControls.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FamilyControls.framework; path = System/Library/Frameworks/FamilyControls.framework; sourceTree = SDKROOT; };
 		1A2B3C4D5E6F708192A300A1 /* DeviceActivityReportExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = DeviceActivityReportExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A2B3C4D5E6F708192A300AA /* ExtensionKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ExtensionKit.framework; path = System/Library/Frameworks/ExtensionKit.framework; sourceTree = SDKROOT; };
 		1A2B3C4D5E6F708192A300AC /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
-		1A2B3C4D5E6F708192A30042 /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
-		1A2B3C4D5E6F708192A30044 /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = System/Library/Frameworks/ManagedSettingsUI.framework; sourceTree = SDKROOT; };
-		1A2B3C4D5E6F708192A30091 /* DeviceActivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceActivity.framework; path = System/Library/Frameworks/DeviceActivity.framework; sourceTree = SDKROOT; };
-		1A2B3C4D5E6F708192A30098 /* FamilyControls.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FamilyControls.framework; path = System/Library/Frameworks/FamilyControls.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -101,7 +101,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				ShieldConfigurationExtension.entitlements,
 			);
 			target = 1A2B3C4D5E6F708192A30021 /* ShieldConfigurationExtension */;
 		};
@@ -109,7 +108,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				ShieldActionExtension.entitlements,
 			);
 			target = 1A2B3C4D5E6F708192A30051 /* ShieldActionExtension */;
 		};
@@ -117,7 +115,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				DeviceActivityMonitorExtension.entitlements,
 			);
 			target = 1A2B3C4D5E6F708192A30083 /* DeviceActivityMonitorExtension */;
 		};
@@ -125,7 +122,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				DeviceActivityReportExtension.entitlements,
 			);
 			target = 1A2B3C4D5E6F708192A300A3 /* DeviceActivityReportExtension */;
 		};
@@ -308,8 +304,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				1A2B3C4D5E6F708192A30025 /* ShieldConfigurationExtension */,
 				1A2B3C4D5E6F708192A30007 /* Shared */,
+				1A2B3C4D5E6F708192A30025 /* ShieldConfigurationExtension */,
 			);
 			name = ShieldConfigurationExtension;
 			productName = ShieldConfigurationExtension;
@@ -329,8 +325,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				1A2B3C4D5E6F708192A30055 /* ShieldActionExtension */,
 				1A2B3C4D5E6F708192A30007 /* Shared */,
+				1A2B3C4D5E6F708192A30055 /* ShieldActionExtension */,
 			);
 			name = ShieldActionExtension;
 			productName = ShieldActionExtension;
@@ -350,8 +346,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				1A2B3C4D5E6F708192A30085 /* DeviceActivityMonitorExtension */,
 				1A2B3C4D5E6F708192A30007 /* Shared */,
+				1A2B3C4D5E6F708192A30085 /* DeviceActivityMonitorExtension */,
 			);
 			name = DeviceActivityMonitorExtension;
 			productName = DeviceActivityMonitorExtension;
@@ -371,8 +367,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				1A2B3C4D5E6F708192A300A5 /* DeviceActivityReportExtension */,
 				1A2B3C4D5E6F708192A30007 /* Shared */,
+				1A2B3C4D5E6F708192A300A5 /* DeviceActivityReportExtension */,
 			);
 			name = DeviceActivityReportExtension;
 			productName = DeviceActivityReportExtension;
@@ -797,7 +793,6 @@
 			};
 			name = Release;
 		};
-
 		1A2B3C4D5E6F708192A300B2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {

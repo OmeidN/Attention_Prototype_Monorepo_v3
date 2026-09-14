@@ -38,6 +38,10 @@ struct AttentionAPITestApp: App {
             "ATTN-M09",
             "access_window_fallback preferred_duration_s=\(AccessWindowBridge.preferredDurationSeconds()) — not opens"
         )
+        TestLogger.shared.log(
+            "ATTN-M10",
+            "reshield_mode=\(ReshieldPolicy.mode().rawValue) unsafe_interrupt=\(ReshieldPolicy.unsafeInterrupt()) — default safe"
+        )
     }
 
     var body: some Scene {

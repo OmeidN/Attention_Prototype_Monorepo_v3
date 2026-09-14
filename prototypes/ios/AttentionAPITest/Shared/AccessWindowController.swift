@@ -2,25 +2,34 @@ import Foundation
 import Combine
 import ManagedSettings
 
-/// Host-side access window timer + deferred re-shield (M09).
-/// Does not yank mid-use: if Attention is background at end, defer until Attention is active again.
+/// Host-side access window timer + M10 re-shield modes.
 @MainActor
 final class AccessWindowController: ObservableObject {
     static let shared = AccessWindowController()
 
     @Published var durationSeconds: Int
     @Published var honestUnit: String
+    @Published var reshieldMode: ReshieldMode
+    @Published var unsafeInterrupt: Bool
+    @Published var acceptableModeNote: String
     @Published private(set) var statusText: String
-    @Published private(set) var ruleText =
-        "Rule: at window end do NOT tear down mid-scroll. If Attention is background, defer re-shield until Attention is active (M10 owns interrupt policy)."
+    @Published private(set) var reshieldStatusText: String
+    @Published private(set) var ruleText: String
 
     private var timer: Timer?
     private var attentionForeground = true
 
     private init() {
+        let mode = ReshieldPolicy.mode()
+        let unsafe = ReshieldPolicy.unsafeInterrupt()
         durationSeconds = AccessWindowBridge.preferredDurationSeconds()
         honestUnit = AccessWindowBridge.honestUnit()
+        reshieldMode = mode
+        unsafeInterrupt = unsafe
+        acceptableModeNote = ReshieldPolicy.acceptableModeNote()
         statusText = AccessWindowBridge.statusSummary()
+        reshieldStatusText = ReshieldPolicy.statusSummary()
+        ruleText = Self.makeRuleText(mode: mode, unsafe: unsafe)
     }
 
     func setDurationSeconds(_ seconds: Int) {
@@ -36,9 +45,36 @@ final class AccessWindowController: ObservableObject {
         TestLogger.shared.log("ATTN-M09", "honest_unit_choice=\(unit)")
     }
 
+    func setReshieldMode(_ mode: ReshieldMode) {
+        reshieldMode = mode
+        ReshieldPolicy.setMode(mode)
+        ruleText = Self.makeRuleText(mode: mode, unsafe: unsafeInterrupt)
+        TestLogger.shared.log("ATTN-M10", "reshield_mode=\(mode.rawValue) unsafe_interrupt=\(unsafeInterrupt)")
+        refreshStatus()
+    }
+
+    func setUnsafeInterrupt(_ on: Bool) {
+        unsafeInterrupt = on
+        ReshieldPolicy.setUnsafeInterrupt(on)
+        ruleText = Self.makeRuleText(mode: reshieldMode, unsafe: on)
+        TestLogger.shared.log(
+            "ATTN-M10",
+            "unsafe_interrupt=\(on) — \(on ? "WILL yank while tracked app may be foreground" : "default safe defer")"
+        )
+        refreshStatus()
+    }
+
+    func setAcceptableModeNote(_ note: String) {
+        acceptableModeNote = note
+        ReshieldPolicy.setAcceptableModeNote(note)
+        TestLogger.shared.log("ATTN-M10", "production_acceptable=\(note)")
+        refreshStatus()
+    }
+
     func sync(reason: String, attentionForeground: Bool, apps: [TrackedApp]) {
         self.attentionForeground = attentionForeground
         logWindowStartIfNeeded(reason: reason)
+        consumePendingThresholdIfNeeded(reason: reason, apps: apps)
         refreshStatus()
 
         if AccessWindowBridge.isPendingReshield() || windowElapsed() {
@@ -75,6 +111,18 @@ final class AccessWindowController: ObservableObject {
         refreshStatus()
     }
 
+    func manualReshieldNow(apps: [TrackedApp]) {
+        let mode = ReshieldPolicy.mode()
+        guard mode == .manualOnly || mode == .onWindowEnd || mode == .onThreshold else { return }
+        performReshield(
+            apps: apps,
+            mode: .manualOnly,
+            reason: "manual_button",
+            mechanism: "manual_button",
+            logTag: "ATTN-M10"
+        )
+    }
+
     func noteUsageCheckpointIfNeeded(thresholdAt: String, labels: String, reason: String) {
         let last = AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.lastUsageCheckpointThresholdAtKey)
         guard last != thresholdAt else { return }
@@ -86,6 +134,23 @@ final class AccessWindowController: ObservableObject {
             "ATTN-M09",
             "usage_checkpoint threshold_at=\(thresholdAt) labels=[\(labels)] in_access_window=\(inWindow) access_window_end_at=\(endAt) reason=\(reason) — usage_time not session_end"
         )
+
+        if ReshieldPolicy.mode() == .onThreshold {
+            consumePendingThresholdIfNeeded(reason: "usage_checkpoint_\(reason)", apps: TrackedAppsStore.shared.apps)
+        }
+    }
+
+    private static func makeRuleText(mode: ReshieldMode, unsafe: Bool) -> String {
+        switch mode {
+        case .onWindowEnd:
+            return unsafe
+                ? "UNSAFE: window end may re-shield while tracked app is foreground."
+                : "on_window_end: re-shield after window when Attention is active (defer if background). No mid-use yank."
+        case .onThreshold:
+            return "on_threshold: window end does NOT re-shield; M07 threshold arms re-shield (extension if possible, else host)."
+        case .manualOnly:
+            return "manual_only: window end does NOT re-shield; use Manual re-shield button."
+        }
     }
 
     private func logWindowStartIfNeeded(reason: String) {
@@ -100,6 +165,10 @@ final class AccessWindowController: ObservableObject {
         TestLogger.shared.log(
             "ATTN-M09",
             "window_start source=continue_bridge reason=\(reason) label=\(AccessWindowBridge.label()) id=\(AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.trackedIdKey) ?? "nil") duration_s=\(dur) access_window_end_at=\(end)"
+        )
+        TestLogger.shared.log(
+            "ATTN-M10",
+            "window_armed reshield_mode=\(ReshieldPolicy.mode().rawValue) unsafe_interrupt=\(ReshieldPolicy.unsafeInterrupt())"
         )
     }
 
@@ -136,12 +205,58 @@ final class AccessWindowController: ObservableObject {
 
         let endAt = AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.endAtKey) ?? "?"
         let label = AccessWindowBridge.label()
+        let mode = ReshieldPolicy.mode()
+
+        switch mode {
+        case .manualOnly:
+            cancelTimer()
+            AccessWindowBridge.clearWindow(reason: "window_end_manual_only")
+            TestLogger.shared.log(
+                "ATTN-M10",
+                "window_end no_reshield mode=manual_only label=\(label) access_window_end_at=\(endAt) reason=\(reason)"
+            )
+            refreshStatus()
+            return
+
+        case .onThreshold:
+            cancelTimer()
+            AccessWindowBridge.clearWindow(reason: "window_end_wait_threshold")
+            TestLogger.shared.log(
+                "ATTN-M10",
+                "window_end no_reshield mode=on_threshold waiting_for_usage_threshold label=\(label) access_window_end_at=\(endAt) reason=\(reason)"
+            )
+            refreshStatus()
+            return
+
+        case .onWindowEnd:
+            break
+        }
+
+        let unsafe = ReshieldPolicy.unsafeInterrupt()
 
         if !attentionForeground && AccessWindowBridge.isActive() && !AccessWindowBridge.isPendingReshield() {
+            if unsafe {
+                TestLogger.shared.log(
+                    "ATTN-M10",
+                    "unsafe_interrupt applying while Attention background label=\(label) access_window_end_at=\(endAt) reason=\(reason)"
+                )
+                performReshield(
+                    apps: apps,
+                    mode: .onWindowEnd,
+                    reason: "unsafe_interrupt_timer",
+                    mechanism: "unsafe_interrupt_while_tracked_may_be_foreground",
+                    logTag: "ATTN-M10"
+                )
+                return
+            }
             AccessWindowBridge.markPendingReshield()
             TestLogger.shared.log(
                 "ATTN-M09",
                 "window_end_while_foreground deferred=true label=\(label) access_window_end_at=\(endAt) reason=\(reason) — will re-shield when Attention active"
+            )
+            TestLogger.shared.log(
+                "ATTN-M10",
+                "deferred reshield_mode=on_window_end unsafe_interrupt=false reason=\(reason)"
             )
             refreshStatus()
             return
@@ -152,13 +267,54 @@ final class AccessWindowController: ObservableObject {
             return
         }
 
-        performReshield(apps: apps, mechanism: reason == "timer_fired" ? "host_timer_attention_active" : "host_deferred_on_attention_active")
+        let mechanism = reason == "timer_fired" ? "host_timer_attention_active" : "host_deferred_on_attention_active"
+        performReshield(
+            apps: apps,
+            mode: .onWindowEnd,
+            reason: mechanism,
+            mechanism: mechanism,
+            logTag: "ATTN-M10"
+        )
     }
 
-    private func performReshield(apps: [TrackedApp], mechanism: String) {
+    private func consumePendingThresholdIfNeeded(reason: String, apps: [TrackedApp]) {
+        guard ReshieldPolicy.mode() == .onThreshold else { return }
+        guard ReshieldPolicy.isPendingThreshold() else { return }
+
+        let pendingAt = ReshieldPolicy.suite?.string(forKey: ReshieldPolicy.pendingThresholdAtKey)
+
+        if !attentionForeground {
+            TestLogger.shared.log(
+                "ATTN-M10",
+                "threshold_pending waiting_host_active pending_at=\(pendingAt ?? "?") reason=\(reason)"
+            )
+            return
+        }
+
+        var delayNote = "n/a"
+        if let pendingAt, let date = ISO8601DateFormatter().date(from: pendingAt) {
+            delayNote = String(format: "%.2f", Date().timeIntervalSince(date))
+        }
+
+        performReshield(
+            apps: apps,
+            mode: .onThreshold,
+            reason: "host_after_threshold delay_s=\(delayNote)",
+            mechanism: "host_on_threshold",
+            logTag: "ATTN-M10"
+        )
+    }
+
+    private func performReshield(
+        apps: [TrackedApp],
+        mode: ReshieldMode,
+        reason: String,
+        mechanism: String,
+        logTag: String
+    ) {
         cancelTimer()
         let targetID = AccessWindowBridge.trackedId()
-        let targets: [TrackedApp]
+        var targets: [TrackedApp]
         if let targetID, let match = apps.first(where: { $0.id == targetID }) {
             targets = [match]
         } else if let match = apps.first(where: { $0.userLabel == AccessWindowBridge.label() }) {
@@ -167,26 +323,44 @@ final class AccessWindowController: ObservableObject {
             targets = apps
         }
 
+        // Threshold mode may target via pending labels if window already cleared.
+        if targets.isEmpty || (mode == .onThreshold && AccessWindowBridge.trackedId() == nil) {
+            let labels = ReshieldPolicy.suite?.string(forKey: ReshieldPolicy.pendingThresholdLabelsKey)?
+                .split(separator: ",")
+                .map(String.init) ?? []
+            if let first = labels.first, let match = apps.first(where: { $0.userLabel == first }) {
+                targets = [match]
+            }
+        }
+
         if targets.isEmpty {
             TestLogger.shared.log(
-                "ATTN-M09",
-                "window_end reshielded=false mechanism=\(mechanism) reason=no_matching_tracked_app label=\(AccessWindowBridge.label())"
+                logTag,
+                "reshielded=false reshield_mode=\(mode.rawValue) reason=\(reason) detail=no_matching_tracked_app"
             )
-            AccessWindowBridge.markReshielded(mechanism: "\(mechanism)_failed_no_app")
+            ReshieldPolicy.recordApplied(mode: mode, reason: "\(reason)_failed_no_app", fromExtension: false)
             refreshStatus()
             return
         }
 
-        ShieldController.shared.addTokensToShield(apps: targets, logTag: "ATTN-M09")
-        AccessWindowBridge.markReshielded(mechanism: mechanism)
+        ShieldController.shared.addTokensToShield(apps: targets, logTag: logTag)
+        ReshieldPolicy.recordApplied(mode: mode, reason: reason, fromExtension: false)
         TestLogger.shared.log(
-            "ATTN-M09",
-            "window_end reshielded=true mechanism=\(mechanism) labels=[\(targets.map(\.userLabel).joined(separator: ","))] access_window_end_at=\(AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.endAtKey) ?? "?") — not session_end"
+            logTag,
+            "reshielded=true reshield_mode=\(mode.rawValue) reshield_applied_at=\(ReshieldPolicy.suite?.string(forKey: ReshieldPolicy.lastAppliedAtKey) ?? "?") reason=\(reason) mechanism=\(mechanism) labels=[\(targets.map(\.userLabel).joined(separator: ","))]"
         )
+        // Keep M09-readable line too when window-driven.
+        if mode == .onWindowEnd {
+            TestLogger.shared.log(
+                "ATTN-M09",
+                "window_end reshielded=true mechanism=\(mechanism) labels=[\(targets.map(\.userLabel).joined(separator: ","))] access_window_end_at=\(AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.endAtKey) ?? "?") — not session_end"
+            )
+        }
         refreshStatus()
     }
 
     private func refreshStatus() {
         statusText = AccessWindowBridge.statusSummary()
+        reshieldStatusText = ReshieldPolicy.statusSummary()
     }
 }

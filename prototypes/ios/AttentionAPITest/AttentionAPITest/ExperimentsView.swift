@@ -54,12 +54,12 @@ struct ExperimentsView: View {
         NavigationStack {
             List {
                 Section("Milestone") {
-                    Text("M09 — Access window fallback")
+                    Text("M10 — Re-shielding modes")
                         .font(.headline)
-                    Text("Exact opens failed (M08). Honest unit under test: access_window / usage_time — not opens.")
-                        .font(.caption)
-                        .foregroundStyle(.red)
                     Text(accessWindow.ruleText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("Default: on_window_end, unsafe_interrupt=OFF. Honest unit remains access_window (M09).")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -201,7 +201,54 @@ struct ExperimentsView: View {
                         statusMessage = "Access window cancelled (no reshield)."
                     }
 
-                    Text("After Continue (or debug start): stay in app inside window → usable; leave/return inside window → still unshielded; after end + Attention foreground → shielded from Home. Optional: Start M07 monitor for usage_checkpoint logs.")
+                    Text("After Continue (or debug start): stay in app inside window → usable; leave/return inside window → still unshielded; after end + Attention foreground → shielded from Home (if mode=on_window_end). Optional: Start M07 monitor for usage_checkpoint / on_threshold.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("M10 — Re-shield mode") {
+                    Text(accessWindow.reshieldStatusText)
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
+
+                    Picker("Mode", selection: Binding(
+                        get: { accessWindow.reshieldMode },
+                        set: { accessWindow.setReshieldMode($0) }
+                    )) {
+                        Text("on_window_end").tag(ReshieldMode.onWindowEnd)
+                        Text("on_threshold").tag(ReshieldMode.onThreshold)
+                        Text("manual_only").tag(ReshieldMode.manualOnly)
+                    }
+
+                    Toggle(isOn: Binding(
+                        get: { accessWindow.unsafeInterrupt },
+                        set: { accessWindow.setUnsafeInterrupt($0) }
+                    )) {
+                        Text("unsafe_interrupt (yank mid-use)")
+                            .foregroundStyle(accessWindow.unsafeInterrupt ? .red : .primary)
+                    }
+
+                    if accessWindow.unsafeInterrupt {
+                        Text("UNSAFE: may re-shield while the tracked app is still foreground. Leave OFF unless testing interrupt.")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+
+                    Button("Manual re-shield now") {
+                        accessWindow.manualReshieldNow(apps: trackedApps.apps)
+                        statusMessage = "Manual re-shield requested."
+                    }
+                    .disabled(trackedApps.apps.isEmpty || !authApproved)
+
+                    TextField(
+                        "Production-acceptable mode note…",
+                        text: Binding(
+                            get: { accessWindow.acceptableModeNote },
+                            set: { accessWindow.setAcceptableModeNote($0) }
+                        )
+                    )
+
+                    Text("Test: window-end in-app (default=no interrupt); window-end after leave; on_threshold after ~1 min use (Start M07); rapid reopen ×5 around end.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
