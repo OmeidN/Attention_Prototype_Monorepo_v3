@@ -10,6 +10,7 @@ struct ExperimentsView: View {
     @EnvironmentObject private var deviceActivity: DeviceActivityMonitoring
     @EnvironmentObject private var openTrial: OpenTrialStore
     @EnvironmentObject private var accessWindow: AccessWindowController
+    @EnvironmentObject private var stressChecklist: StressChecklistStore
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var selection = FamilyActivitySelection()
@@ -31,6 +32,8 @@ struct ExperimentsView: View {
     @State private var hostActivityProbeText = "host_activityData: not run yet"
     @State private var lastSeenThresholdAt: String? = DeviceActivityBridge.suite?.string(forKey: DeviceActivityBridge.lastThresholdAtKey)
     @State private var isProbingHostActivity = false
+    @State private var m11StatusText = InterventionState.statusSummary(apps: TrackedAppsStore.shared.apps)
+    @State private var m11TrustNote = InterventionState.trustNote()
 
     private var authApproved: Bool {
         FamilyControlsAuth.status == .approved
@@ -54,14 +57,13 @@ struct ExperimentsView: View {
         NavigationStack {
             List {
                 Section("Milestone") {
-                    Text("M10 — Re-shielding modes")
+                    Text("M12 — Stress / failure")
                         .font(.headline)
-                    Text(accessWindow.ruleText)
+                    Text("Tick each row after you run it. Logs must still Copy after failures. No new Screen Time APIs.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text("Default: on_window_end, unsafe_interrupt=OFF. Honest unit remains access_window (M09).")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text(stressChecklist.summaryLine())
+                        .font(.system(.caption, design: .monospaced))
                 }
 
                 if !authApproved {
@@ -249,6 +251,105 @@ struct ExperimentsView: View {
                     )
 
                     Text("Test: window-end in-app (default=no interrupt); window-end after leave; on_threshold after ~1 min use (Start M07); rapid reopen ×5 around end.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("M11 — Friction levels") {
+                    Text(m11StatusText)
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
+
+                    Text(InterventionState.mappingDescription())
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Button("Refresh M11 counts") {
+                        m11StatusText = InterventionState.statusSummary(apps: trackedApps.apps)
+                        statusMessage = "Refreshed intervention counts."
+                    }
+
+                    if let first = trackedApps.apps.first {
+                        Button("Debug +1 Continue for \(first.userLabel)") {
+                            let (prev, next, count) = InterventionState.debugBumpContinue(appID: first.id)
+                            TestLogger.shared.log(
+                                "ATTN-M11",
+                                "debug_bump label=\(first.userLabel) prev_level=\(prev) next_level=\(next) continues=\(count)"
+                            )
+                            m11StatusText = InterventionState.statusSummary(apps: trackedApps.apps)
+                            statusMessage = "Debug +1 Continue. Re-open shielded \(first.userLabel) to see level."
+                        }
+                    }
+
+                    Button("Reset today (all apps)", role: .destructive) {
+                        InterventionState.resetToday()
+                        TestLogger.shared.log("ATTN-M11", "reset_today")
+                        m11StatusText = InterventionState.statusSummary(apps: trackedApps.apps)
+                        statusMessage = "Reset today's Continue / Never Mind counts."
+                    }
+
+                    TextField(
+                        "Trust note: trustworthy / fragile / unusable…",
+                        text: $m11TrustNote
+                    )
+                    .onChange(of: m11TrustNote) { _, newValue in
+                        InterventionState.setTrustNote(newValue)
+                        TestLogger.shared.log("ATTN-M11", "trustworthiness=\(newValue)")
+                    }
+
+                    Text("Continue 3× (re-shield between). Expect L0→L1→L2 on shield subtitle. Force-quit host, open shielded app — level still correct? Never Mind must not bump continues.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("M12 — Stress checklist") {
+                    Text("UUID store unchanged. If auth revoked: Setup shows status; shield UI clears; app must not crash.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    ForEach(stressChecklist.items) { item in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Toggle(isOn: Binding(
+                                get: { item.done },
+                                set: { stressChecklist.setDone(id: item.id, done: $0) }
+                            )) {
+                                Text(item.title)
+                                    .font(.caption)
+                            }
+                            TextField(
+                                "result: pass/fail/skip…",
+                                text: Binding(
+                                    get: { item.result },
+                                    set: { stressChecklist.setResult(id: item.id, result: $0) }
+                                )
+                            )
+                            .font(.caption)
+                            TextField(
+                                "notes…",
+                                text: Binding(
+                                    get: { item.notes },
+                                    set: { stressChecklist.setNotes(id: item.id, notes: $0) }
+                                )
+                            )
+                            .font(.caption)
+                        }
+                        .padding(.vertical, 4)
+                    }
+
+                    TextField(
+                        "Full-day reliability % / notes…",
+                        text: Binding(
+                            get: { stressChecklist.fullDayReliabilityNote },
+                            set: { stressChecklist.setFullDayNote($0) }
+                        )
+                    )
+
+                    Button("Reset stress checklist", role: .destructive) {
+                        stressChecklist.resetChecklist()
+                        statusMessage = "Stress checklist reset."
+                    }
+
+                    Text("After each stress: open Logs → Copy all still works. Paste ATTN-M12 lines when done.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -466,6 +567,7 @@ struct ExperimentsView: View {
                 refreshShieldActionFromBridge(reason: "onAppear")
                 refreshM07FromBridge(reason: "onAppear")
                 m08SideChannelText = DeviceActivityReportBridge.hostSideChannelSummary()
+                m11StatusText = InterventionState.statusSummary(apps: trackedApps.apps)
                 accessWindow.sync(
                     reason: "onAppear",
                     attentionForeground: true,
@@ -701,6 +803,12 @@ struct ExperimentsView: View {
                 "ATTN-M06",
                 "\(consumed.summary) reason=\(reason) latency=\(consumed.latencySeconds.map { String(format: "%.2f" , $0) } ?? "n/a")"
             )
+            if let transition = ShieldCopySettings.suite?.string(forKey: "attention.m11.last_continue_transition"),
+               consumed.summary.contains("continue") {
+                TestLogger.shared.log("ATTN-M11", "continue_transition \(transition) reason=\(reason)")
+                ShieldCopySettings.suite?.removeObject(forKey: "attention.m11.last_continue_transition")
+            }
+            m11StatusText = InterventionState.statusSummary(apps: trackedApps.apps)
             statusMessage = "Read shield action from App Group."
             accessWindow.sync(
                 reason: "after_shield_action_\(reason)",
@@ -768,4 +876,5 @@ struct ExperimentsView: View {
         .environmentObject(DeviceActivityMonitoring.shared)
         .environmentObject(OpenTrialStore.shared)
         .environmentObject(AccessWindowController.shared)
+        .environmentObject(StressChecklistStore.shared)
 }

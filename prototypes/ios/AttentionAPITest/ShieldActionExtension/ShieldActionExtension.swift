@@ -12,13 +12,19 @@ final class ShieldActionExtension: ShieldActionDelegate {
     ) {
         switch action {
         case .primaryButtonPressed:
-            _ = ShieldActionBridge.record(action: "never_mind", token: application)
+            let event = ShieldActionBridge.record(action: "never_mind", token: application)
+            _ = InterventionState.recordNeverMind(appID: event.trackedAppId)
             completionHandler(.close)
 
         case .secondaryButtonPressed:
             let event = ShieldActionBridge.record(action: "continue", token: application)
+            let (prev, next, count) = InterventionState.recordContinue(appID: event.trackedAppId)
+            // Host logs ATTN-M11 when it reads App Group; extension cannot use TestLogger.
+            ShieldCopySettings.suite?.set(
+                "prev_level=\(prev) next_level=\(next) continues=\(count) label=\(event.userLabel ?? "NO_LABEL")",
+                forKey: "attention.m11.last_continue_transition"
+            )
             unblock(application)
-            // M09: start access window in App Group; host timer re-shields (not mid-use yank).
             AccessWindowBridge.beginWindow(trackedAppId: event.trackedAppId, userLabel: event.userLabel)
             completionHandler(.close)
 

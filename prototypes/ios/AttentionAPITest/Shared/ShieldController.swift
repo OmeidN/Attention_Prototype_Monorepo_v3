@@ -64,6 +64,14 @@ final class ShieldController: ObservableObject {
         TestLogger.shared.log("ATTN-M04", "shield_clear")
     }
 
+    /// Clear "we think we are shielding" UI when auth is lost (M12). Does not crash.
+    func markAuthLostUI() {
+        lastWriteActive = false
+        lastWriteLabels = ""
+        lastWriteAt = TestLogger.isoString(Date())
+        persistWriteState()
+    }
+
     /// Union tokens into the current shield set (M09 access-window end / partial re-shield).
     func addTokensToShield(apps: [TrackedApp], logTag: String = "ATTN-M04") {
         guard !apps.isEmpty else { return }

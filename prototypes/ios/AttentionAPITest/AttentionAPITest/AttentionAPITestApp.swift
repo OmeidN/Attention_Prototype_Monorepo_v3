@@ -12,6 +12,7 @@ struct AttentionAPITestApp: App {
     @StateObject private var deviceActivity = DeviceActivityMonitoring.shared
     @StateObject private var openTrial = OpenTrialStore.shared
     @StateObject private var accessWindow = AccessWindowController.shared
+    @StateObject private var stressChecklist = StressChecklistStore.shared
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -42,6 +43,19 @@ struct AttentionAPITestApp: App {
             "ATTN-M10",
             "reshield_mode=\(ReshieldPolicy.mode().rawValue) unsafe_interrupt=\(ReshieldPolicy.unsafeInterrupt()) — default safe"
         )
+        let rolled = InterventionState.ensureToday()
+        if rolled {
+            TestLogger.shared.log(
+                "ATTN-M12",
+                "day_rollover local_day=\(InterventionState.todayString()) — M11 counts cleared"
+            )
+        }
+        TestLogger.shared.log(
+            "ATTN-M11",
+            "friction_levels \(InterventionState.mappingDescription())"
+        )
+        TestLogger.shared.log("ATTN-M12", "stress_checklist_ready \(StressChecklistStore.shared.summaryLine())")
+        Self.checkAuthorization(reason: "launch")
     }
 
     var body: some Scene {
@@ -53,6 +67,7 @@ struct AttentionAPITestApp: App {
                 .environmentObject(deviceActivity)
                 .environmentObject(openTrial)
                 .environmentObject(accessWindow)
+                .environmentObject(stressChecklist)
         }
         .onChange(of: scenePhase) { _, newPhase in
             let name: String
@@ -66,6 +81,14 @@ struct AttentionAPITestApp: App {
             TestLogger.shared.log("ATTN-M00", name)
 
             if newPhase == .active {
+                Self.checkAuthorization(reason: "scene_active")
+                let rolled = InterventionState.ensureToday()
+                if rolled {
+                    TestLogger.shared.log(
+                        "ATTN-M12",
+                        "day_rollover local_day=\(InterventionState.todayString()) — M11 counts cleared"
+                    )
+                }
                 AccessWindowController.shared.sync(
                     reason: "app_scene_active",
                     attentionForeground: true,
@@ -78,6 +101,16 @@ struct AttentionAPITestApp: App {
                     apps: TrackedAppsStore.shared.apps
                 )
             }
+        }
+    }
+
+    private static func checkAuthorization(reason: String) {
+        let status = FamilyControlsAuth.statusLabel
+        if FamilyControlsAuth.status != .approved {
+            TestLogger.shared.log("ATTN-M12", "auth_lost status=\(status) reason=\(reason)")
+            ShieldController.shared.markAuthLostUI()
+        } else if reason == "launch" {
+            TestLogger.shared.log("ATTN-M12", "auth_ok status=\(status) reason=\(reason)")
         }
     }
 }
