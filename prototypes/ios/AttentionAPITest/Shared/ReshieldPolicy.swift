@@ -139,6 +139,10 @@ enum ReshieldPolicy {
         store.shield.applications = applications
         suite?.set(true, forKey: "attention.m04.last_shield_write_active")
         recordApplied(mode: .onThreshold, reason: "monitor_extension_threshold", fromExtension: true)
+        suite?.set(
+            "ATTN-P05A hard_reshield labels=[\(targets.map(\.userLabel).joined(separator: ","))] via=monitor_extension — usage_duration not opens",
+            forKey: "attention.p05a.last_hard_reshield_note"
+        )
         return true
     }
 }

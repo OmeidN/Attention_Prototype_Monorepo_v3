@@ -2,7 +2,7 @@
 
 Living notes for agents building **Attention v1** (production milestones).
 
-Canonical design: `../ATTENTION_V1_DESIGN_PLAN.md`  
+Canonical design: `../ATTENTION_V1_DESIGN_PLAN.md` (see **Amendment A**)  
 Milestones: `../milestones-production/`  
 Results: `../docs/PRODUCTION_RESULTS.md`
 
@@ -14,23 +14,18 @@ Last updated: 2026-09-19
 
 | Item | Value |
 |---|---|
-| Current milestone | **P04 — Access Windows** |
+| Current milestone | **P05A — Hard Threshold Re-shield** |
 | Status | **BUILT — awaiting physical-device confirmation** |
-| Prior | **P00–P03 PASS** (P03 human 2026-09-19) |
+| Prior | **P00–P05 PASS** |
 
 ---
 
-## P04 agent notes
+## Policy flip
 
-- Continue → `AccessWindowBridge.beginWindow`
-- Host timer + scene sync; policy locked **`on_window_end` / `unsafe_interrupt=off`**
-- Deferred re-shield when Attention background/quit at end
-- Duration presets: 15s debug, 1/5/10/15 min (default 15s for easy checks)
-- Honest unit: `access_window` only
-- Tag: `ATTN-P04`
+Default closer is now **`on_threshold`** (usage duration → monitor extension re-shield, Attention may be quit, **may yank**). Host `on_window_end` remains secondary.
 
 ---
 
 ## Next action
 
-Human P04 device checklist. After PASS → P05.
+Human P05A device checklist. After PASS → P06.

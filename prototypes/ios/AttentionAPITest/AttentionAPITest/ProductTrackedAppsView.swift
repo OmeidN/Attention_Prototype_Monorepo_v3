@@ -36,12 +36,61 @@ struct ProductTrackedAppsView: View {
                     row("Auth", FamilyControlsAuth.statusLabel)
                 }
 
+                Section("P05A — Hard closer (set-and-forget)") {
+                    Text("After Continue you get about N minutes of use in that app. Attention will block again when the usage threshold hits — even if Attention is force-quit. This can yank you mid-scroll.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    row("Closer", "on_threshold · may yank · no Attention required")
+                    row("Unit", "usage duration (not wall-clock, not opens)")
+                    row("Monitor arm", HardWindowMonitor.statusLine())
+                    Text(DeviceActivityBridge.statusSummary())
+                        .font(.system(.caption2, design: .monospaced))
+                        .textSelection(.enabled)
+                    Button("Re-arm thresholds now") {
+                        ReshieldPolicy.setMode(.onThreshold)
+                        let err = HardWindowMonitor.rearm(apps: trackedApps.apps, reason: "manual_rearm")
+                        logger.log("ATTN-P05A", "manual_rearm \(err.map { "error=\($0)" } ?? "ok")")
+                        statusMessage = err.map { "Rearm failed: \($0)" } ?? "Thresholds re-armed for \(trackedApps.apps.count) app(s)."
+                    }
+                    .disabled(trackedApps.apps.isEmpty)
+                }
+
+                Section("P05 — Friction ladder") {
+                    Text("Per-app continues_today drive shield copy. Never Mind does not bump Continue count. No Continue-button delay (API unavailable).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(InterventionState.mappingDescription())
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(InterventionState.statusSummary(apps: trackedApps.apps))
+                        .font(.system(.caption2, design: .monospaced))
+                        .textSelection(.enabled)
+                    if let config = ShieldCopySettings.suite?.string(forKey: "attention.p05.last_level_config") {
+                        row("Last shield config", config)
+                    }
+                    Button("Reset today's Continue / Never Mind counts") {
+                        InterventionState.resetToday()
+                        logger.log("ATTN-P05", "reset_today local_day=\(InterventionState.todayString())")
+                        statusMessage = "Reset today's friction counts — next shield should be L0."
+                    }
+                    if let first = trackedApps.apps.first {
+                        Button("Debug +1 Continue for \(first.userLabel)") {
+                            let result = InterventionState.debugBumpContinue(appID: first.id)
+                            logger.log(
+                                "ATTN-P05",
+                                "debug_bump label=\(first.userLabel) prev_level=\(result.prev) next_level=\(result.next) continues=\(result.count)"
+                            )
+                            statusMessage = "Debug bump \(first.userLabel) → L\(result.next) (continues=\(result.count)). Re-open shield to see copy."
+                        }
+                    }
+                }
+
                 Section("P04 — Access window") {
                     Text("Continue starts a timed access_window. Re-shield at window end (no mid-scroll yank). If Attention is quit/background at end, re-shield defers until Attention is active again.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    row("Policy", "on_window_end · unsafe_interrupt=off")
-                    row("Unit", "access_window (not open / not session_end)")
+                    row("Policy", "on_threshold (hard) · host on_window_end is secondary")
+                    row("Unit", "access_window / usage duration (not open / not session_end)")
 
                     Picker("Window length", selection: Binding(
                         get: { accessWindow.durationSeconds },
@@ -94,9 +143,15 @@ struct ProductTrackedAppsView: View {
 
                     Button("Shield all") {
                         shield.shieldSelected(apps: trackedApps.apps, logTag: "ATTN-P02")
+                        ReshieldPolicy.setMode(.onThreshold)
+                        let err = HardWindowMonitor.rearm(apps: trackedApps.apps, reason: "shield_all")
+                        logger.log(
+                            "ATTN-P05A",
+                            "shield_all_rearm \(err.map { "error=\($0)" } ?? "ok") \(HardWindowMonitor.statusLine())"
+                        )
                         statusMessage = trackedApps.apps.isEmpty
                             ? "No tracked apps to shield."
-                            : "Shield applied to \(trackedApps.apps.count) app(s). Open a tracked app — expect Apple’s default restricted screen (custom chrome is P03)."
+                            : "Shield applied. Hard closer armed (usage threshold / may yank). Force-quit Attention OK."
                     }
                     .disabled(!authApproved || trackedApps.apps.isEmpty)
 
@@ -156,18 +211,17 @@ struct ProductTrackedAppsView: View {
                     }
                 }
 
-                Section("Recent P01–P04 logs") {
+                Section("Recent P01–P05 logs") {
                     let recent = Array(
                         logger.lines
                             .filter {
-                                $0.tag == "ATTN-P01" || $0.tag == "ATTN-P02"
-                                    || $0.tag == "ATTN-P03" || $0.tag == "ATTN-P04"
+                                $0.tag.hasPrefix("ATTN-P0")
                             }
                             .suffix(14)
                             .reversed()
                     )
                     if recent.isEmpty {
-                        Text("No P01–P04 lines yet.")
+                        Text("No P0x lines yet.")
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(recent) { entry in
@@ -243,6 +297,11 @@ struct ProductTrackedAppsView: View {
                     attentionForeground: true,
                     apps: trackedApps.apps
                 )
+                if let transition = ShieldCopySettings.suite?.string(forKey: "attention.m11.last_continue_transition") {
+                    logger.log("ATTN-P05", "continue_transition \(transition)")
+                }
+            } else if consumed.summary.contains("intentional_choice") || consumed.summary.contains("never_mind") {
+                logger.log("ATTN-P05", "intentional_choice_no_continue_bump \(consumed.summary)")
             }
             statusMessage = "Shield action: \(consumed.summary)"
         } else {
@@ -271,8 +330,24 @@ struct ProductTrackedAppsView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
+                Text("Window ≈ \(Self.formatDuration(app.windowDurationSeconds)) of use")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 if !isSelectingToRemove {
+                    Picker("Window", selection: Binding(
+                        get: { app.windowDurationSeconds },
+                        set: { newValue in
+                            trackedApps.setWindowDuration(appID: app.id, seconds: newValue)
+                            _ = HardWindowMonitor.rearm(apps: trackedApps.apps, reason: "duration_change")
+                        }
+                    )) {
+                        ForEach(AccessWindowBridge.durationChoices, id: \.seconds) { choice in
+                            Text(choice.label).tag(choice.seconds)
+                        }
+                    }
+                    .font(.caption)
+
                     Button("Try system token refresh") {
                         if trackedApps.attemptSystemTokenRefresh(for: app.id) {
                             selection = trackedApps.lastSelection
@@ -292,6 +367,7 @@ struct ProductTrackedAppsView: View {
                         trackedApps.removeApps(ids: [app.id])
                         selection = trackedApps.lastSelection
                         shield.syncWithTrackedApps(trackedApps.apps, reason: "remove_one")
+                        _ = HardWindowMonitor.rearm(apps: trackedApps.apps, reason: "remove_one")
                         statusMessage = "Removed “\(app.userLabel)”."
                     }
                     .font(.caption)
@@ -320,6 +396,12 @@ struct ProductTrackedAppsView: View {
                 .textSelection(.enabled)
         }
         .padding(.vertical, 2)
+    }
+
+    private static func formatDuration(_ seconds: Int) -> String {
+        if seconds < 60 { return "\(seconds)s" }
+        if seconds % 60 == 0 { return "\(seconds / 60) min" }
+        return "\(seconds / 60)m \(seconds % 60)s"
     }
 
     private func deleteAtOffsets(_ offsets: IndexSet) {

@@ -40,8 +40,8 @@ enum AccessWindowBridge {
     }
 
     /// Called from ShieldActionExtension on Continue (after unblock).
-    static func beginWindow(trackedAppId: UUID?, userLabel: String?) {
-        let duration = preferredDurationSeconds()
+    static func beginWindow(trackedAppId: UUID?, userLabel: String?, durationSeconds: Int? = nil) {
+        let duration = durationSeconds ?? preferredDurationSeconds()
         let start = Date()
         let end = start.addingTimeInterval(TimeInterval(duration))
         let formatter = ISO8601DateFormatter()

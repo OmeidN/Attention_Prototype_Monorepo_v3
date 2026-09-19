@@ -22,6 +22,7 @@
 		1A2B3C4D5E6F708192A300AB /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A300AC /* SwiftUI.framework */; };
 		1A2B3C4D5E6F708192A300AD /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30042 /* ManagedSettings.framework */; };
 		1A2B3C4D5E6F708192A300AE /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30098 /* FamilyControls.framework */; };
+		1A2B3C4D5E6F708192A300C0 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A30091 /* DeviceActivity.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -193,6 +194,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1A2B3C4D5E6F708192A300C0 /* DeviceActivity.framework in Frameworks */,
 				1A2B3C4D5E6F708192A30062 /* ManagedSettings.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

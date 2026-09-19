@@ -64,7 +64,7 @@ struct ProductShellView: View {
                 }
 
                 Section("Home (placeholder)") {
-                    Text("Continue starts an access_window (P04). Leave Attention open (or reopen it) so re-shield can run at window end — no mid-scroll yank.")
+                    Text("Default closer: hard usage threshold (P05A) — may yank; Attention need not stay open. Today metrics are P06.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

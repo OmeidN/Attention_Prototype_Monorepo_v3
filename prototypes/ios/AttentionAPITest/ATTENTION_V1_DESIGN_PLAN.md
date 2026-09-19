@@ -390,8 +390,22 @@ Resolve before or during early build — none reverse the Access Window Model:
 2. Default window length and whether user can change mid-day  
 3. Exact XP weights and streak definition  
 4. Whether “Pause Attention” (clear all shields) exists and how loudly it’s warned  
-5. Whether optional hard mode (`on_threshold` yank) ships behind a flag  
+5. ~~Whether optional hard mode (`on_threshold` yank) ships behind a flag~~ → **DECIDED (2026-09-19):** hard threshold is the **default closer** for set-and-forget (see Amendment A).  
 6. New bundle ID / App Group for product vs evolve the prototype project  
+
+---
+
+## Amendment A — Hard threshold closer (2026-09-19)
+
+**Product preference:** Attention is a setup app. Users configure tracked apps + per-app windows, then leave Attention alone. Host-deferred `on_window_end` is insufficient.
+
+**Default closer:** DeviceActivity **usage-duration** threshold → `DeviceActivityMonitorExtension` re-shields (works with Attention force-quit). Mid-use yank is accepted and disclosed.
+
+**Honest copy:** “about N minutes of use,” not exact wall-clock; not opens; not leave-detection.
+
+**Milestone:** `milestones-production/MILESTONE_05A_HARD_THRESHOLD_RESHIELD.md`
+
+Gentle host `on_window_end` remains proven (P04) as a non-default option if ever exposed.
 
 ---
 

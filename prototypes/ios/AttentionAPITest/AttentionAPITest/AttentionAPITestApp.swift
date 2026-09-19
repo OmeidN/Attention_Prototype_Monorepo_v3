@@ -13,13 +13,13 @@ struct AttentionAPITestApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
-        // Production defaults for P04 — lock safe re-shield policy.
-        ReshieldPolicy.setMode(.onWindowEnd)
-        ReshieldPolicy.setUnsafeInterrupt(false)
+        // Production defaults for P05A — hard threshold closer (set-and-forget; may yank).
+        ReshieldPolicy.setMode(.onThreshold)
+        ReshieldPolicy.setUnsafeInterrupt(true)
         AccessWindowBridge.setHonestUnit("access_window")
-        AccessWindowController.shared.setReshieldMode(.onWindowEnd)
-        AccessWindowController.shared.setUnsafeInterrupt(false)
-        ReshieldPolicy.setAcceptableModeNote("on_window_end unsafe_off")
+        AccessWindowController.shared.setReshieldMode(.onThreshold)
+        AccessWindowController.shared.setUnsafeInterrupt(true)
+        ReshieldPolicy.setAcceptableModeNote("on_threshold hard_yank set-and-forget")
 
         TestLogger.shared.log(
             "ATTN-P00",
@@ -41,6 +41,18 @@ struct AttentionAPITestApp: App {
             "ATTN-P04",
             "policy reshield_mode=\(ReshieldPolicy.mode().rawValue) unsafe_interrupt=\(ReshieldPolicy.unsafeInterrupt()) preferred_duration_s=\(AccessWindowBridge.preferredDurationSeconds()) unit=access_window"
         )
+        TestLogger.shared.log(
+            "ATTN-P05A",
+            "hard_closer=on_threshold may_yank=true \(HardWindowMonitor.statusLine())"
+        )
+        let rolled = InterventionState.ensureToday()
+        if rolled {
+            TestLogger.shared.log(
+                "ATTN-P05",
+                "day_rollover local_day=\(InterventionState.todayString()) — continues/never_mind cleared"
+            )
+        }
+        TestLogger.shared.log("ATTN-P05", "friction \(InterventionState.mappingDescription())")
         productShellLogger.log("app_launched")
     }
 
@@ -84,6 +96,13 @@ struct AttentionAPITestApp: App {
                     attentionForeground: true,
                     apps: TrackedAppsStore.shared.apps
                 )
+                let rolled = InterventionState.ensureToday()
+                if rolled {
+                    TestLogger.shared.log(
+                        "ATTN-P05",
+                        "day_rollover local_day=\(InterventionState.todayString()) — continues/never_mind cleared"
+                    )
+                }
             } else if newPhase == .background {
                 AccessWindowController.shared.sync(
                     reason: "app_scene_background",

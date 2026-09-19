@@ -1,7 +1,8 @@
 import ManagedSettings
+import DeviceActivity
+import Foundation
 
-/// P03: primary = Never Mind (stay blocked), secondary = Continue (lift shield + start access_window for P04).
-/// Mapping matches ShieldConfigurationExtension button labels.
+/// P05A: Never Mind / Continue. Continue arms hard usage-threshold re-shield (works if Attention is dead).
 final class ShieldActionExtension: ShieldActionDelegate {
     private let store = ManagedSettingsStore()
 
@@ -26,10 +27,25 @@ final class ShieldActionExtension: ShieldActionDelegate {
                 "prev_level=\(prev) next_level=\(next) continues=\(count) label=\(event.userLabel ?? "NO_LABEL")",
                 forKey: "attention.m11.last_continue_transition"
             )
+
+            let apps = Self.loadTrackedApps()
+            let matched = apps.first(where: { $0.id == event.trackedAppId })
+                ?? apps.first(where: { $0.token == application })
+            let duration = matched?.windowDurationSeconds ?? AccessWindowBridge.preferredDurationSeconds()
+
             unblock(application)
-            AccessWindowBridge.beginWindow(trackedAppId: event.trackedAppId, userLabel: event.userLabel)
+            AccessWindowBridge.beginWindow(
+                trackedAppId: event.trackedAppId,
+                userLabel: event.userLabel,
+                durationSeconds: duration
+            )
+
+            // Set-and-forget closer: re-arm thresholds so monitor extension can hard-re-shield.
+            ReshieldPolicy.setMode(.onThreshold)
+            let armError = HardWindowMonitor.rearm(apps: apps, reason: "continue")
+            let armNote = armError.map { "arm_error=\($0)" } ?? "arm_ok"
             ShieldActionBridge.writeExtensionNote(
-                "ATTN-P04 continue+window label=\(event.userLabel ?? "NO_LABEL") id=\(event.trackedAppId?.uuidString ?? "nil") duration_s=\(AccessWindowBridge.preferredDurationSeconds()) end=\(AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.endAtKey) ?? "?")"
+                "ATTN-P05A continue+hard_window label=\(event.userLabel ?? "NO_LABEL") id=\(event.trackedAppId?.uuidString ?? "nil") duration_s=\(duration) \(armNote) — usage_duration may yank"
             )
             completionHandler(.close)
 
@@ -62,5 +78,12 @@ final class ShieldActionExtension: ShieldActionDelegate {
         if applications.isEmpty {
             ShieldCopySettings.suite?.set(false, forKey: "attention.m04.last_shield_write_active")
         }
+    }
+
+    private static func loadTrackedApps() -> [TrackedApp] {
+        guard let data = ShieldCopySettings.suite?.data(forKey: ShieldCopySettings.trackedAppsKey),
+              let apps = try? JSONDecoder().decode([TrackedApp].self, from: data)
+        else { return [] }
+        return apps
     }
 }

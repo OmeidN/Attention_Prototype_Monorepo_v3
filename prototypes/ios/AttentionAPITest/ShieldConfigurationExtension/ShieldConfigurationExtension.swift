@@ -2,8 +2,8 @@ import ManagedSettings
 import ManagedSettingsUI
 import UIKit
 
-/// P03 product shield chrome. Static pause copy (L0–L2 friction copy is P05).
-/// No lab “variant A/B” or `continues_today=(shared OK)` debug in the shipping subtitle.
+/// P05 product friction ladder: L0→L2 copy from per-app `continues_today` (App Group).
+/// Tone/stakes only — no Continue-button delay API.
 final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     override func configuration(shielding application: Application) -> ShieldConfiguration {
         makeConfiguration(token: application.token)
@@ -22,6 +22,15 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     }
 
     private func makeConfiguration(token: ApplicationToken?) -> ShieldConfiguration {
+        let rolled = InterventionState.ensureToday()
+        if rolled {
+            // Extension cannot use TestLogger; host logs day_rollover on next active.
+            ShieldCopySettings.suite?.set(
+                "day_rollover local_day=\(InterventionState.todayString())",
+                forKey: "attention.p05.last_day_rollover_note"
+            )
+        }
+
         let label = ShieldCopySettings.userLabel(for: token) ?? "app"
         let titleText = "Attention — \(label)"
 
@@ -32,7 +41,7 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
                 icon: UIImage(systemName: "pause.circle"),
                 title: ShieldConfiguration.Label(text: titleText, color: .white),
                 subtitle: ShieldConfiguration.Label(
-                    text: "Pause. Shared state unavailable — use Never Mind or Continue.",
+                    text: "Pause. Shared state unavailable — one static shield.",
                     color: UIColor(white: 0.85, alpha: 1)
                 ),
                 primaryButtonLabel: ShieldConfiguration.Label(text: "Never Mind", color: .white),
@@ -41,18 +50,54 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
             )
         }
 
-        // Product static copy for P03. P05 will escalate tone from continues_today.
-        let subtitleText = "Pause a beat. What did you come here for?"
+        let subtitleText: String
+        let iconName: String
+        let secondaryLabel: String
+        let background: UIColor
+
+        if let appID = token.flatMap({ InterventionState.trackedAppID(for: $0) }) {
+            let continues = InterventionState.continueCount(appID: appID)
+            let level = InterventionState.level(forContinueCount: continues)
+            InterventionState.markLevelShown(level: level, label: label)
+            ShieldCopySettings.suite?.set(
+                "L\(level) continues_today=\(continues) label=\(label) id=\(appID.uuidString)",
+                forKey: "attention.p05.last_level_config"
+            )
+
+            switch level {
+            case 0:
+                subtitleText = "Pause a beat. What did you come here for?"
+                iconName = "pause.circle"
+                secondaryLabel = "Continue"
+                background = UIColor(white: 0.12, alpha: 1)
+            case 1:
+                subtitleText = "You've continued already today. Still intentional?"
+                iconName = "exclamationmark.bubble"
+                secondaryLabel = "Continue"
+                background = UIColor(red: 0.18, green: 0.14, blue: 0.10, alpha: 1)
+            default:
+                // No API to delay Continue — copy/icon only.
+                subtitleText = "Several Continues today. Sure this is worth a window?"
+                iconName = "exclamationmark.triangle.fill"
+                secondaryLabel = "Continue anyway"
+                background = UIColor(red: 0.22, green: 0.10, blue: 0.10, alpha: 1)
+            }
+        } else {
+            subtitleText = "Pause a beat. What did you come here for?"
+            iconName = "pause.circle"
+            secondaryLabel = "Continue"
+            background = UIColor(white: 0.12, alpha: 1)
+        }
 
         return ShieldConfiguration(
             backgroundBlurStyle: .systemMaterial,
-            backgroundColor: UIColor(white: 0.12, alpha: 1),
-            icon: UIImage(systemName: "pause.circle"),
+            backgroundColor: background,
+            icon: UIImage(systemName: iconName),
             title: ShieldConfiguration.Label(text: titleText, color: .white),
             subtitle: ShieldConfiguration.Label(text: subtitleText, color: UIColor(white: 0.85, alpha: 1)),
             primaryButtonLabel: ShieldConfiguration.Label(text: "Never Mind", color: .white),
             primaryButtonBackgroundColor: UIColor(red: 0.2, green: 0.45, blue: 0.85, alpha: 1),
-            secondaryButtonLabel: ShieldConfiguration.Label(text: "Continue", color: .white)
+            secondaryButtonLabel: ShieldConfiguration.Label(text: secondaryLabel, color: .white)
         )
     }
 }

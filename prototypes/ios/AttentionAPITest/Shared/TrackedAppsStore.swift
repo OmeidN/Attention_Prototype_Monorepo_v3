@@ -75,16 +75,34 @@ final class TrackedAppsStore: ObservableObject {
     /// Append one newly named app. Existing UUIDs/labels are untouched.
     @discardableResult
     func addTrackedApp(label: String, token: ApplicationToken) -> TrackedApp {
-        let app = TrackedApp(id: UUID(), userLabel: label, token: token, dateAdded: Date())
+        let duration = AccessWindowBridge.preferredDurationSeconds()
+        let app = TrackedApp(
+            id: UUID(),
+            userLabel: label,
+            token: token,
+            dateAdded: Date(),
+            windowDurationSeconds: duration
+        )
         apps.append(app)
         persistApps()
         syncSelectionFromTrackedApps()
         logSelectionChanged(reason: "added_one")
         TestLogger.shared.log(
             "ATTN-P01",
-            "app_added id=\(app.id.uuidString) label=\(label) total=\(apps.count)"
+            "app_added id=\(app.id.uuidString) label=\(label) total=\(apps.count) window_s=\(duration)"
         )
         return app
+    }
+
+    func setWindowDuration(appID: UUID, seconds: Int) {
+        guard let index = apps.firstIndex(where: { $0.id == appID }) else { return }
+        let clamped = max(15, seconds)
+        apps[index].windowDurationSeconds = clamped
+        persistApps()
+        TestLogger.shared.log(
+            "ATTN-P05A",
+            "window_duration_set id=\(appID.uuidString) label=\(apps[index].userLabel) seconds=\(clamped)"
+        )
     }
 
     func updateLastSelection(_ selection: FamilyActivitySelection) {

@@ -23,7 +23,7 @@ enum InterventionState {
     }
 
     static func mappingDescription() -> String {
-        "continues_today 0→L0 soft | 1–2→L1 reminder | ≥3→L2 are-you-sure (Continue delay: no ShieldConfiguration API — copy/icon only)"
+        "per-app continues_today 0→L0 soft | 1–2→L1 reminder | ≥3→L2 are-you-sure (copy/icon only; no Continue delay API)"
     }
 
     static func todayString() -> String {
