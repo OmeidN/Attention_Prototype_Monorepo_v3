@@ -80,6 +80,10 @@ final class TrackedAppsStore: ObservableObject {
         persistApps()
         syncSelectionFromTrackedApps()
         logSelectionChanged(reason: "added_one")
+        TestLogger.shared.log(
+            "ATTN-P01",
+            "app_added id=\(app.id.uuidString) label=\(label) total=\(apps.count)"
+        )
         return app
     }
 
@@ -94,6 +98,7 @@ final class TrackedAppsStore: ObservableObject {
         ExperimentStore.shared.removeObject(forKey: Self.appsKey)
         ExperimentStore.shared.removeObject(forKey: Self.selectionKey)
         TestLogger.shared.log("ATTN-M03", "selection_cleared")
+        TestLogger.shared.log("ATTN-P01", "selection_cleared remaining=0")
     }
 
     /// Re-bind a live token onto an existing UUID after a fresh picker session.
@@ -101,6 +106,7 @@ final class TrackedAppsStore: ObservableObject {
     func refreshToken(for id: UUID, newToken: ApplicationToken) -> Bool {
         guard let index = apps.firstIndex(where: { $0.id == id }) else {
             TestLogger.shared.log("ATTN-M03", "token_refresh_failed reason=unknown_id id=\(id.uuidString)")
+            TestLogger.shared.log("ATTN-P01", "token_refresh_failed reason=unknown_id id=\(id.uuidString)")
             return false
         }
         apps[index].token = newToken
@@ -110,7 +116,53 @@ final class TrackedAppsStore: ObservableObject {
             "ATTN-M03",
             "token_refreshed id=\(id.uuidString) label=\(apps[index].userLabel)"
         )
+        TestLogger.shared.log(
+            "ATTN-P01",
+            "token_refreshed id=\(id.uuidString) label=\(apps[index].userLabel) via=picker_rebind"
+        )
         return true
+    }
+
+    /// Best-effort `ManagedSettingsStore.refresh` (iOS 26.5+). On failure, use picker re-bind.
+    @discardableResult
+    func attemptSystemTokenRefresh(for id: UUID) -> Bool {
+        guard let index = apps.firstIndex(where: { $0.id == id }) else {
+            TestLogger.shared.log("ATTN-P01", "system_token_refresh_failed reason=unknown_id")
+            return false
+        }
+        let label = apps[index].userLabel
+        guard #available(iOS 26.5, *) else {
+            TestLogger.shared.log(
+                "ATTN-P01",
+                "system_token_refresh_unavailable id=\(id.uuidString) label=\(label) — use Re-bind"
+            )
+            return false
+        }
+        var tokens = [apps[index].token]
+        do {
+            try ManagedSettingsStore.refresh(&tokens)
+            guard let refreshed = tokens.first else {
+                TestLogger.shared.log(
+                    "ATTN-P01",
+                    "system_token_refresh_failed id=\(id.uuidString) label=\(label) reason=empty_result — use Re-bind"
+                )
+                return false
+            }
+            apps[index].token = refreshed
+            persistApps()
+            syncSelectionFromTrackedApps()
+            TestLogger.shared.log(
+                "ATTN-P01",
+                "token_refreshed id=\(id.uuidString) label=\(label) via=ManagedSettingsStore.refresh"
+            )
+            return true
+        } catch {
+            TestLogger.shared.log(
+                "ATTN-P01",
+                "system_token_refresh_failed id=\(id.uuidString) label=\(label) error=\(error.localizedDescription) — use Re-bind"
+            )
+            return false
+        }
     }
 
     func app(id: UUID) -> TrackedApp? {
@@ -138,6 +190,7 @@ final class TrackedAppsStore: ObservableObject {
     func removeApps(ids: Set<UUID>) {
         guard !ids.isEmpty else { return }
         let before = apps.count
+        let removedLabels = apps.filter { ids.contains($0.id) }.map(\.userLabel)
         apps.removeAll { ids.contains($0.id) }
         persistApps()
         syncSelectionFromTrackedApps()
@@ -146,6 +199,10 @@ final class TrackedAppsStore: ObservableObject {
             "ATTN-M03",
             "apps_removed count=\(before - apps.count) remaining=\(apps.count) labels=[\(labels)]"
         )
+        TestLogger.shared.log(
+            "ATTN-P01",
+            "apps_removed count=\(before - apps.count) removed=[\(removedLabels.joined(separator: ","))] remaining=\(apps.count)"
+        )
     }
 
     private func logSelectionChanged(reason: String) {
@@ -153,6 +210,10 @@ final class TrackedAppsStore: ObservableObject {
         TestLogger.shared.log(
             "ATTN-M03",
             "selection_changed reason=\(reason) apps=\(applicationCount) categories=\(categoryCount) webDomains=\(webDomainCount) labels=[\(labels)]"
+        )
+        TestLogger.shared.log(
+            "ATTN-P01",
+            "selection_changed reason=\(reason) apps=\(applicationCount) labels=[\(labels)]"
         )
     }
 }

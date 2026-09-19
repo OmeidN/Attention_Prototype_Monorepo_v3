@@ -77,22 +77,22 @@ struct SetupView: View {
             .navigationTitle("Setup")
         }
         .onAppear {
+        stamp()
+        refreshAuthStatus(reason: "onAppear")
+        TestLogger.shared.log("ATTN-M00", "setup_visible \(lastActiveTimestamp)")
+    }
+    .onChange(of: scenePhase) { _, phase in
+        if phase == .active {
             stamp()
-            refreshAuthStatus(reason: "onAppear")
-        }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .active {
-                stamp()
-                refreshAuthStatus(reason: "scene_active")
-            }
+            refreshAuthStatus(reason: "scene_active")
         }
     }
+}
 
-    private func stamp() {
-        lastActiveTimestamp = TestLogger.isoString(Date())
-        milestone00Logger.log("setup_visible \(lastActiveTimestamp, privacy: .public)")
-        TestLogger.shared.log("ATTN-M00", "setup_timestamp \(lastActiveTimestamp)")
-    }
+private func stamp() {
+    lastActiveTimestamp = TestLogger.isoString(Date())
+    TestLogger.shared.log("ATTN-M00", "setup_timestamp \(lastActiveTimestamp)")
+}
 
     private func refreshAuthStatus(reason: String) {
         authStatusLabel = FamilyControlsAuth.statusLabel

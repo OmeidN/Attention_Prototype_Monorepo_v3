@@ -84,6 +84,7 @@ struct NamingAppsView: View {
         if trimmed.isEmpty {
             inlineError = "Type a name before continuing. The field is blank."
             TestLogger.shared.log("ATTN-M03", "naming_blocked blank_row=1")
+            TestLogger.shared.log("ATTN-P01", "naming_blocked blank_row=1")
             return
         }
         inlineError = nil

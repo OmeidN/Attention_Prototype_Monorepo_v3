@@ -1,61 +1,29 @@
 import SwiftUI
 import os
 
-/// M00 asks for lifecycle events on the `attention.m00` subsystem specifically.
-let milestone00Logger = Logger(subsystem: "attention.m00", category: "lifecycle")
+/// P00+ product host. Lab experiment controllers are not wired into the primary UI.
+let productShellLogger = Logger(subsystem: "attention.p00", category: "lifecycle")
 
 @main
 struct AttentionAPITestApp: App {
     @StateObject private var logger = TestLogger.shared
     @StateObject private var trackedApps = TrackedAppsStore.shared
-    @StateObject private var shield = ShieldController.shared
-    @StateObject private var deviceActivity = DeviceActivityMonitoring.shared
-    @StateObject private var openTrial = OpenTrialStore.shared
-    @StateObject private var accessWindow = AccessWindowController.shared
-    @StateObject private var stressChecklist = StressChecklistStore.shared
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
-        ExperimentStore.shared.setBool(true, forKey: "foundation_ok")
-        TestLogger.shared.log("ATTN-M01", "app_launched foundation_ok=true")
         TestLogger.shared.log(
-            "ATTN-M03",
-            "store_backing \(ExperimentStore.shared.backingDescription)"
-        )
-        if ShieldCopySettings.readVariant() == nil {
-            ShieldCopySettings.writeVariant("A")
-            TestLogger.shared.log("ATTN-M05", "shield_config_variant_written variant=A reason=launch_default")
-        }
-        DeviceActivityBridge.writeThresholdClaim()
-        TestLogger.shared.log(
-            "ATTN-M07",
-            "threshold_unit_claim \(DeviceActivityBridge.thresholdUnitClaim)"
+            "ATTN-P00",
+            "app_launched product_shell=true bundle=\(DeviceInfo.bundleIdentifier) app_group=\(ExperimentStore.appGroupID) boundary=evolved_lab_project"
         )
         TestLogger.shared.log(
-            "ATTN-M08",
-            DeviceActivityReportBridge.reportAPIHostReadableClaim
+            "ATTN-P00",
+            "auth_at_launch status=\(FamilyControlsAuth.statusLabel)"
         )
         TestLogger.shared.log(
-            "ATTN-M09",
-            "access_window_fallback preferred_duration_s=\(AccessWindowBridge.preferredDurationSeconds()) — not opens"
+            "ATTN-P01",
+            "tracked_apps_at_launch count=\(TrackedAppsStore.shared.apps.count) labels=[\(TrackedAppsStore.shared.userLabels.joined(separator: ","))]"
         )
-        TestLogger.shared.log(
-            "ATTN-M10",
-            "reshield_mode=\(ReshieldPolicy.mode().rawValue) unsafe_interrupt=\(ReshieldPolicy.unsafeInterrupt()) — default safe"
-        )
-        let rolled = InterventionState.ensureToday()
-        if rolled {
-            TestLogger.shared.log(
-                "ATTN-M12",
-                "day_rollover local_day=\(InterventionState.todayString()) — M11 counts cleared"
-            )
-        }
-        TestLogger.shared.log(
-            "ATTN-M11",
-            "friction_levels \(InterventionState.mappingDescription())"
-        )
-        TestLogger.shared.log("ATTN-M12", "stress_checklist_ready \(StressChecklistStore.shared.summaryLine())")
-        Self.checkAuthorization(reason: "launch")
+        productShellLogger.log("app_launched")
     }
 
     var body: some Scene {
@@ -63,11 +31,6 @@ struct AttentionAPITestApp: App {
             RootView()
                 .environmentObject(logger)
                 .environmentObject(trackedApps)
-                .environmentObject(shield)
-                .environmentObject(deviceActivity)
-                .environmentObject(openTrial)
-                .environmentObject(accessWindow)
-                .environmentObject(stressChecklist)
         }
         .onChange(of: scenePhase) { _, newPhase in
             let name: String
@@ -77,40 +40,20 @@ struct AttentionAPITestApp: App {
             case .background: name = "scene_background"
             @unknown default: name = "scene_unknown"
             }
-            milestone00Logger.log("\(name, privacy: .public)")
-            TestLogger.shared.log("ATTN-M00", name)
+            productShellLogger.log("\(name, privacy: .public)")
+            TestLogger.shared.log("ATTN-P00", name)
 
             if newPhase == .active {
-                Self.checkAuthorization(reason: "scene_active")
-                let rolled = InterventionState.ensureToday()
-                if rolled {
-                    TestLogger.shared.log(
-                        "ATTN-M12",
-                        "day_rollover local_day=\(InterventionState.todayString()) — M11 counts cleared"
-                    )
-                }
-                AccessWindowController.shared.sync(
-                    reason: "app_scene_active",
-                    attentionForeground: true,
-                    apps: TrackedAppsStore.shared.apps
+                TestLogger.shared.log(
+                    "ATTN-P00",
+                    "auth_on_active status=\(FamilyControlsAuth.statusLabel)"
                 )
-            } else if newPhase == .background {
-                AccessWindowController.shared.sync(
-                    reason: "app_scene_background",
-                    attentionForeground: false,
-                    apps: TrackedAppsStore.shared.apps
+                TrackedAppsStore.shared.load()
+                TestLogger.shared.log(
+                    "ATTN-P01",
+                    "tracked_apps_on_active count=\(TrackedAppsStore.shared.apps.count)"
                 )
             }
-        }
-    }
-
-    private static func checkAuthorization(reason: String) {
-        let status = FamilyControlsAuth.statusLabel
-        if FamilyControlsAuth.status != .approved {
-            TestLogger.shared.log("ATTN-M12", "auth_lost status=\(status) reason=\(reason)")
-            ShieldController.shared.markAuthLostUI()
-        } else if reason == "launch" {
-            TestLogger.shared.log("ATTN-M12", "auth_ok status=\(status) reason=\(reason)")
         }
     }
 }

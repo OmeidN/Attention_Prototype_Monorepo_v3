@@ -1,16 +1,14 @@
 import SwiftUI
 
+/// Production primary UI. Lab Experiments tabs are not shown.
 struct RootView: View {
     var body: some View {
         TabView {
-            SetupView()
-                .tabItem { Label("Setup", systemImage: "gearshape") }
+            ProductShellView()
+                .tabItem { Label("Shell", systemImage: "house") }
 
-            ExperimentsView()
-                .tabItem { Label("Experiments", systemImage: "flask") }
-
-            LogsView()
-                .tabItem { Label("Logs", systemImage: "list.bullet.rectangle") }
+            ProductTrackedAppsView()
+                .tabItem { Label("Apps", systemImage: "app.badge") }
         }
     }
 }
@@ -19,5 +17,4 @@ struct RootView: View {
     RootView()
         .environmentObject(TestLogger.shared)
         .environmentObject(TrackedAppsStore.shared)
-        .environmentObject(ShieldController.shared)
 }

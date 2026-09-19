@@ -5,8 +5,8 @@ Current milestone: M00 — Environment Setup
 Status: IN PROGRESS — awaiting physical-device confirmation
 
 ## iOS
-Current milestone: M13 — Final Verdict
-Status: M00–M12 PASS. M13 verdict drafted (Access Window Model) — awaiting human confirmation. See `prototypes/ios/AttentionAPITest/docs/ARCHITECTURE_DECISION.md`.
+Lab: M00–M12 PASS. M13 Access Window Model drafted — see `prototypes/ios/AttentionAPITest/docs/ARCHITECTURE_DECISION.md`.
+Production v1: **P00 PASS**. **P01 — Tracked Apps** built — awaiting physical-device confirmation. See `…/docs/PRODUCTION_RESULTS.md`.
 
 ## Cross-Platform Decision
 Status: NOT STARTED
