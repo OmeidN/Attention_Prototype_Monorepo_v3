@@ -64,7 +64,7 @@ struct ProductShellView: View {
                 }
 
                 Section("Home (placeholder)") {
-                    Text("Use the Apps tab to pick and name distracting apps (P01). Shielding starts in P02. Today metrics arrive later.")
+                    Text("Continue starts an access_window (P04). Leave Attention open (or reopen it) so re-shield can run at window end — no mid-scroll yank.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

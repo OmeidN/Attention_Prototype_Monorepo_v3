@@ -4,10 +4,9 @@ Living notes for agents building **Attention v1** (production milestones).
 
 Canonical design: `../ATTENTION_V1_DESIGN_PLAN.md`  
 Milestones: `../milestones-production/`  
-Results: `../docs/PRODUCTION_RESULTS.md`  
-Lab (read-only evidence): `../milestones-testing/`, `../docs/TEST_RESULTS.md`
+Results: `../docs/PRODUCTION_RESULTS.md`
 
-Last updated: 2026-09-18
+Last updated: 2026-09-19
 
 ---
 
@@ -15,34 +14,23 @@ Last updated: 2026-09-18
 
 | Item | Value |
 |---|---|
-| Current milestone | **P01 — Tracked Apps** |
+| Current milestone | **P04 — Access Windows** |
 | Status | **BUILT — awaiting physical-device confirmation** |
-| Prior | **P00 PASS** (human 2026-09-18) |
-| Architecture | Access Window Model (from lab) |
-| Boundary | evolved lab project — `com.attention.apitest` / `group.com.attention.apitest` |
-| Primary UI | Shell tab + **Apps** tab (`ProductTrackedAppsView`) |
+| Prior | **P00–P03 PASS** (P03 human 2026-09-19) |
 
 ---
 
-## P01 agent notes
+## P04 agent notes
 
-- Reuses `TrackedAppsStore` / `NamingAppsView` (UUID PK in App Group).
-- Product UI: add one → name → list; remove / multi-remove / clear; reject unchecked tracked; Re-bind + `ManagedSettingsStore.refresh` attempt.
-- Tag: `ATTN-P01`. No shields (P02).
-- Do **not** mark PASS until human confirms on device.
-
----
-
-## Rules
-
-1. One milestone at a time; stop for physical-device confirmation.
-2. Never mark PASS without human on-device confirmation.
-3. Honest metrics only (`access_window`, intentional choice, Continue).
-4. Default re-shield: `on_window_end`, unsafe off.
-5. No backend / StoreKit / AI / Android unless explicitly asked.
+- Continue → `AccessWindowBridge.beginWindow`
+- Host timer + scene sync; policy locked **`on_window_end` / `unsafe_interrupt=off`**
+- Deferred re-shield when Attention background/quit at end
+- Duration presets: 15s debug, 1/5/10/15 min (default 15s for easy checks)
+- Honest unit: `access_window` only
+- Tag: `ATTN-P04`
 
 ---
 
 ## Next action
 
-Human runs P01 physical-device checklist. After PASS → P02.
+Human P04 device checklist. After PASS → P05.

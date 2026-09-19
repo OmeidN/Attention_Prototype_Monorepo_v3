@@ -17,4 +17,6 @@ struct RootView: View {
     RootView()
         .environmentObject(TestLogger.shared)
         .environmentObject(TrackedAppsStore.shared)
+        .environmentObject(ShieldController.shared)
+        .environmentObject(AccessWindowController.shared)
 }

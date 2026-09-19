@@ -17,13 +17,15 @@ enum AccessWindowBridge {
     static let lastUsageCheckpointThresholdAtKey = "attention.m09.last_usage_checkpoint_threshold_at"
     static let honestUnitKey = "attention.m09.honest_unit_choice"
 
-    /// Default debug window.
+    /// Default for easy on-device P04 checks; Settings can pick 5/10/15 min.
     static let defaultDurationSeconds = 15
 
     static let durationChoices: [(label: String, seconds: Int)] = [
         ("15s debug", 15),
         ("1 min", 60),
         ("5 min", 300),
+        ("10 min", 600),
+        ("15 min", 900),
     ]
 
     static var suite: UserDefaults? { ShieldCopySettings.suite }

@@ -2,9 +2,11 @@ import SwiftUI
 import FamilyControls
 import ManagedSettings
 
-/// P01 product Setup: pick → name → list. UUID PK. No shielding.
+/// P01–P02 product Setup: pick → name → list + Shield all / Clear (Apple default chrome).
 struct ProductTrackedAppsView: View {
     @EnvironmentObject private var trackedApps: TrackedAppsStore
+    @EnvironmentObject private var shield: ShieldController
+    @EnvironmentObject private var accessWindow: AccessWindowController
     @EnvironmentObject private var logger: TestLogger
 
     @State private var selection = FamilyActivitySelection()
@@ -14,6 +16,8 @@ struct ProductTrackedAppsView: View {
     @State private var statusMessage = "Add apps one at a time. Name each yourself — Apple does not give us display names."
     @State private var isSelectingToRemove = false
     @State private var removeIDs: Set<UUID> = []
+    @State private var lastActionLine = ShieldActionBridge.lastActionSummary()
+    @Environment(\.scenePhase) private var scenePhase
 
     private var authApproved: Bool {
         FamilyControlsAuth.status == .approved
@@ -30,6 +34,80 @@ struct ProductTrackedAppsView: View {
                     row("Count", "\(trackedApps.apps.count)")
                     row("Storage", ExperimentStore.shared.backingDescription)
                     row("Auth", FamilyControlsAuth.statusLabel)
+                }
+
+                Section("P04 — Access window") {
+                    Text("Continue starts a timed access_window. Re-shield at window end (no mid-scroll yank). If Attention is quit/background at end, re-shield defers until Attention is active again.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    row("Policy", "on_window_end · unsafe_interrupt=off")
+                    row("Unit", "access_window (not open / not session_end)")
+
+                    Picker("Window length", selection: Binding(
+                        get: { accessWindow.durationSeconds },
+                        set: { accessWindow.setDurationSeconds($0) }
+                    )) {
+                        ForEach(AccessWindowBridge.durationChoices, id: \.seconds) { choice in
+                            Text(choice.label).tag(choice.seconds)
+                        }
+                    }
+
+                    Text(accessWindow.statusText)
+                        .font(.system(.caption2, design: .monospaced))
+                        .textSelection(.enabled)
+
+                    Text(accessWindow.ruleText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Button("Refresh window status") {
+                        accessWindow.sync(
+                            reason: "manual_refresh",
+                            attentionForeground: true,
+                            apps: trackedApps.apps
+                        )
+                        logger.log("ATTN-P04", "manual_refresh \(AccessWindowBridge.statusSummary().replacingOccurrences(of: "\n", with: " | "))")
+                    }
+                }
+
+                Section("P03 — Shield actions") {
+                    Text("Never Mind = stay blocked (intentional choice). Continue = unblock + start access_window; extra tap to open; re-shield at window end (P04).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    row("Last action", lastActionLine)
+                    row("Host note", ShieldActionBridge.suite?.string(forKey: ShieldActionBridge.hostNeededNoteKey) ?? ShieldActionBridge.hostNeededDefault)
+                    row("Extension note", ShieldActionBridge.extensionNote())
+                    row("Events stored", "\(ShieldActionBridge.loadEvents().count)")
+                    Button("Refresh last action from App Group") {
+                        refreshShieldAction(reason: "manual")
+                    }
+                }
+
+                Section("P02 — Shield") {
+                    row("State", shield.lastWriteActive ? "active" : "cleared")
+                    row("Last write", shield.lastWriteAt ?? "none")
+                    row("Labels", shield.lastWriteLabels.isEmpty ? "—" : shield.lastWriteLabels)
+                    Text(shield.statusLine)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+
+                    Button("Shield all") {
+                        shield.shieldSelected(apps: trackedApps.apps, logTag: "ATTN-P02")
+                        statusMessage = trackedApps.apps.isEmpty
+                            ? "No tracked apps to shield."
+                            : "Shield applied to \(trackedApps.apps.count) app(s). Open a tracked app — expect Apple’s default restricted screen (custom chrome is P03)."
+                    }
+                    .disabled(!authApproved || trackedApps.apps.isEmpty)
+
+                    Button("Clear shields", role: .destructive) {
+                        shield.clearShield(logTag: "ATTN-P02")
+                        statusMessage = "Shields cleared. Tracked apps should open normally."
+                    }
+
+                    Text("Force-quit Attention or reboot — shields should still block tracked apps until Clear. Untracked apps must open normally.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Actions") {
@@ -49,9 +127,10 @@ struct ProductTrackedAppsView: View {
                             }
                             .disabled(removeIDs.isEmpty)
                         }
-                        Button("Clear all", role: .destructive) {
+                        Button("Clear all tracked apps", role: .destructive) {
                             trackedApps.clearAll()
                             selection = trackedApps.lastSelection
+                            shield.syncWithTrackedApps(trackedApps.apps, reason: "clear_all_tracked")
                             statusMessage = "Cleared all tracked apps."
                             isSelectingToRemove = false
                             removeIDs = []
@@ -77,18 +156,21 @@ struct ProductTrackedAppsView: View {
                     }
                 }
 
-                Section("Recent P01 logs") {
-                    let p01 = Array(
+                Section("Recent P01–P04 logs") {
+                    let recent = Array(
                         logger.lines
-                            .filter { $0.tag == "ATTN-P01" }
-                            .suffix(10)
+                            .filter {
+                                $0.tag == "ATTN-P01" || $0.tag == "ATTN-P02"
+                                    || $0.tag == "ATTN-P03" || $0.tag == "ATTN-P04"
+                            }
+                            .suffix(14)
                             .reversed()
                     )
-                    if p01.isEmpty {
-                        Text("No ATTN-P01 lines yet.")
+                    if recent.isEmpty {
+                        Text("No P01–P04 lines yet.")
                             .foregroundStyle(.secondary)
                     } else {
-                        ForEach(p01) { entry in
+                        ForEach(recent) { entry in
                             Text(entry.formatted)
                                 .font(.system(.caption2, design: .monospaced))
                                 .textSelection(.enabled)
@@ -122,6 +204,7 @@ struct ProductTrackedAppsView: View {
                         let added = trackedApps.addTrackedApp(label: label, token: token)
                         selection = trackedApps.lastSelection
                         namingSession = nil
+                        shield.syncWithTrackedApps(trackedApps.apps, reason: "added_one")
                         statusMessage = "Added “\(label)” id \(added.id.uuidString). Existing apps kept their ids."
                     }
                 )
@@ -129,7 +212,46 @@ struct ProductTrackedAppsView: View {
             .onAppear {
                 selection = trackedApps.lastSelection
                 logger.log("ATTN-P01", "apps_screen_appear count=\(trackedApps.apps.count)")
+                logger.log(
+                    "ATTN-P02",
+                    "shield_status_appear active=\(shield.lastWriteActive) at=\(shield.lastWriteAt ?? "nil")"
+                )
+                refreshShieldAction(reason: "onAppear")
             }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active {
+                    refreshShieldAction(reason: "scene_active")
+                }
+            }
+        }
+    }
+
+    private func refreshShieldAction(reason: String) {
+        lastActionLine = ShieldActionBridge.lastActionSummary()
+        if let consumed = ShieldActionBridge.consumeNewActionForHost() {
+            lastActionLine = consumed.summary
+            var msg = "ATTN-P03 host_seen \(consumed.summary)"
+            if let latency = consumed.latencySeconds {
+                msg += " host_seen_latency_s=\(String(format: "%.2f", latency))"
+            }
+            msg += " reason=\(reason) note=\(ShieldActionBridge.extensionNote())"
+            logger.log("ATTN-P03", msg)
+            if consumed.summary.contains("last_shield_action=continue") {
+                shield.reconcileFromExtensionFlag(reason: reason)
+                accessWindow.sync(
+                    reason: "after_continue_\(reason)",
+                    attentionForeground: true,
+                    apps: trackedApps.apps
+                )
+            }
+            statusMessage = "Shield action: \(consumed.summary)"
+        } else {
+            logger.log("ATTN-P03", "host_poll reason=\(reason) \(lastActionLine)")
+            accessWindow.sync(
+                reason: "poll_\(reason)",
+                attentionForeground: true,
+                apps: trackedApps.apps
+            )
         }
     }
 
@@ -169,6 +291,7 @@ struct ProductTrackedAppsView: View {
                     Button("Remove", role: .destructive) {
                         trackedApps.removeApps(ids: [app.id])
                         selection = trackedApps.lastSelection
+                        shield.syncWithTrackedApps(trackedApps.apps, reason: "remove_one")
                         statusMessage = "Removed “\(app.userLabel)”."
                     }
                     .font(.caption)
@@ -204,6 +327,7 @@ struct ProductTrackedAppsView: View {
         let labels = offsets.map { trackedApps.apps[$0].userLabel }
         trackedApps.removeApps(ids: ids)
         selection = trackedApps.lastSelection
+        shield.syncWithTrackedApps(trackedApps.apps, reason: "swipe_delete")
         statusMessage = "Removed \(labels.joined(separator: ", "))."
     }
 
@@ -211,6 +335,7 @@ struct ProductTrackedAppsView: View {
         let labels = trackedApps.apps.filter { removeIDs.contains($0.id) }.map(\.userLabel)
         trackedApps.removeApps(ids: removeIDs)
         selection = trackedApps.lastSelection
+        shield.syncWithTrackedApps(trackedApps.apps, reason: "remove_selected")
         statusMessage = "Removed \(labels.joined(separator: ", "))."
         isSelectingToRemove = false
         removeIDs = []
@@ -337,5 +462,7 @@ struct ProductTrackedAppsView: View {
 #Preview {
     ProductTrackedAppsView()
         .environmentObject(TrackedAppsStore.shared)
+        .environmentObject(ShieldController.shared)
+        .environmentObject(AccessWindowController.shared)
         .environmentObject(TestLogger.shared)
 }

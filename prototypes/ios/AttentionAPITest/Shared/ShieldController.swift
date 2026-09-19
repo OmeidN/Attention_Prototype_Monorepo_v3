@@ -37,7 +37,7 @@ final class ShieldController: ObservableObject {
     }
 
     /// Apply default system shield to current live tokens from tracked apps.
-    func shieldSelected(apps: [TrackedApp]) {
+    func shieldSelected(apps: [TrackedApp], logTag: String = "ATTN-M04") {
         let tokens = Set(apps.map(\.token))
         let labels = apps.map(\.userLabel)
         let ids = apps.map { $0.id.uuidString }
@@ -50,18 +50,39 @@ final class ShieldController: ObservableObject {
         persistWriteState()
 
         TestLogger.shared.log(
-            "ATTN-M04",
+            logTag,
             "shield_apply count=\(tokens.count) labels=[\(lastWriteLabels)] ids=[\(ids.joined(separator: ","))]"
         )
+        if logTag != "ATTN-P02" {
+            TestLogger.shared.log(
+                "ATTN-P02",
+                "shield_apply count=\(tokens.count) labels=[\(lastWriteLabels)] ids=[\(ids.joined(separator: ","))]"
+            )
+        }
     }
 
-    func clearShield() {
+    func clearShield(logTag: String = "ATTN-M04") {
         store.shield.applications = nil
         lastWriteActive = false
         lastWriteLabels = ""
         lastWriteAt = TestLogger.isoString(Date())
         persistWriteState()
-        TestLogger.shared.log("ATTN-M04", "shield_clear")
+        TestLogger.shared.log(logTag, "shield_clear")
+        if logTag != "ATTN-P02" {
+            TestLogger.shared.log("ATTN-P02", "shield_clear")
+        }
+    }
+
+    /// Keep ManagedSettings tokens aligned with the tracked list while shielding is active.
+    func syncWithTrackedApps(_ apps: [TrackedApp], reason: String) {
+        guard lastWriteActive else { return }
+        if apps.isEmpty {
+            clearShield(logTag: "ATTN-P02")
+            TestLogger.shared.log("ATTN-P02", "sync_cleared reason=\(reason) — no tracked apps")
+            return
+        }
+        shieldSelected(apps: apps, logTag: "ATTN-P02")
+        TestLogger.shared.log("ATTN-P02", "sync_reshield reason=\(reason) count=\(apps.count)")
     }
 
     /// Clear "we think we are shielding" UI when auth is lost (M12). Does not crash.
@@ -70,6 +91,17 @@ final class ShieldController: ObservableObject {
         lastWriteLabels = ""
         lastWriteAt = TestLogger.isoString(Date())
         persistWriteState()
+    }
+
+    /// Host reconcile after extension Continue may have cleared one or all tokens.
+    func reconcileFromExtensionFlag(reason: String) {
+        let stillActive = ShieldCopySettings.suite?.bool(forKey: Self.shieldedKey) ?? false
+        if !stillActive && lastWriteActive {
+            lastWriteActive = false
+            lastWriteAt = TestLogger.isoString(Date())
+            persistWriteState()
+            TestLogger.shared.log("ATTN-P03", "shield_ui_reconcile cleared=true reason=\(reason)")
+        }
     }
 
     /// Union tokens into the current shield set (M09 access-window end / partial re-shield).

@@ -25,10 +25,10 @@ Chose **evolved lab project** over a brand-new `com.attention.app` target so P00
 | Milestone | Test | Result | Evidence / Notes |
 | --------- | ---- | ------ | ---------------- |
 | P00 | Product shell + auth | **PASS** | Human confirmed on device 2026-09-18. Product shell, auth, timestamp, identity OK. |
-| P01 | Tracked apps UUID + labels | AWAITING HUMAN | Agent: Apps tab; UUID PK; naming; reject uncheck; re-bind + system refresh attempt. Build OK. |
-| P02 | Shield apply/clear | AWAITING | |
-| P03 | Shield loop + events | AWAITING | |
-| P04 | Access windows + on_window_end | AWAITING | |
+| P01 | Tracked apps UUID + labels | **PASS** | Human confirmed on device 2026-09-18. UUID + labels, add/remove/clear, uncheck reject, re-bind OK. |
+| P02 | Shield apply/clear | **PASS** | Human 2026-09-18. Apply/clear OK. Note: app switcher can show stale lab shield snapshot (“variant B”); full open refreshes live config (L0/L1 lab copy until P03). |
+| P03 | Shield loop + events | **PASS** | Human 2026-09-19. Product pause copy; Never Mind / Continue OK; force-quit OK. |
+| P04 | Access windows + on_window_end | AWAITING HUMAN | Agent: Continue→window; presets 15s–15m; on_window_end + unsafe off; deferred re-shield; ATTN-P04. Build OK. |
 | P05 | Friction ladder L0–L2 | AWAITING | |
 | P06 | Today home ingest | AWAITING | |
 | P07 | Goals / XP / streaks | AWAITING | |

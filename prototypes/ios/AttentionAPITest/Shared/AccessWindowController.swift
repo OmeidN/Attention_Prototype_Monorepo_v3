@@ -36,6 +36,7 @@ final class AccessWindowController: ObservableObject {
         durationSeconds = seconds
         AccessWindowBridge.setPreferredDurationSeconds(seconds)
         TestLogger.shared.log("ATTN-M09", "preferred_duration_s=\(seconds)")
+        TestLogger.shared.log("ATTN-P04", "preferred_duration_s=\(seconds)")
         refreshStatus()
     }
 
@@ -167,7 +168,15 @@ final class AccessWindowController: ObservableObject {
             "window_start source=continue_bridge reason=\(reason) label=\(AccessWindowBridge.label()) id=\(AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.trackedIdKey) ?? "nil") duration_s=\(dur) access_window_end_at=\(end)"
         )
         TestLogger.shared.log(
+            "ATTN-P04",
+            "window_start source=continue_bridge reason=\(reason) label=\(AccessWindowBridge.label()) id=\(AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.trackedIdKey) ?? "nil") duration_s=\(dur) access_window_end_at=\(end) unit=access_window"
+        )
+        TestLogger.shared.log(
             "ATTN-M10",
+            "window_armed reshield_mode=\(ReshieldPolicy.mode().rawValue) unsafe_interrupt=\(ReshieldPolicy.unsafeInterrupt())"
+        )
+        TestLogger.shared.log(
+            "ATTN-P04",
             "window_armed reshield_mode=\(ReshieldPolicy.mode().rawValue) unsafe_interrupt=\(ReshieldPolicy.unsafeInterrupt())"
         )
     }
@@ -253,6 +262,10 @@ final class AccessWindowController: ObservableObject {
             TestLogger.shared.log(
                 "ATTN-M09",
                 "window_end_while_foreground deferred=true label=\(label) access_window_end_at=\(endAt) reason=\(reason) — will re-shield when Attention active"
+            )
+            TestLogger.shared.log(
+                "ATTN-P04",
+                "window_end deferred=true label=\(label) access_window_end_at=\(endAt) reason=\(reason) mechanism=pending_until_attention_active — not session_end"
             )
             TestLogger.shared.log(
                 "ATTN-M10",
@@ -355,6 +368,11 @@ final class AccessWindowController: ObservableObject {
                 "ATTN-M09",
                 "window_end reshielded=true mechanism=\(mechanism) labels=[\(targets.map(\.userLabel).joined(separator: ","))] access_window_end_at=\(AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.endAtKey) ?? "?") — not session_end"
             )
+            TestLogger.shared.log(
+                "ATTN-P04",
+                "window_end reshielded=true mechanism=\(mechanism) labels=[\(targets.map(\.userLabel).joined(separator: ","))] access_window_end_at=\(AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.endAtKey) ?? "?") unit=access_window — not session_end"
+            )
+            AccessWindowBridge.markReshielded(mechanism: mechanism)
         }
         refreshStatus()
     }

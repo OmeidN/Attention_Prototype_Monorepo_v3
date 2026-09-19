@@ -7,12 +7,12 @@ struct ShieldActionEvent: Codable, Equatable, Identifiable {
     let eventId: UUID
     let trackedAppId: UUID?
     let userLabel: String?
-    /// `never_mind` or `continue`
+    /// `intentional_choice` (Never Mind) or `continue`
     let action: String
     let timestamp: Date
 }
 
-/// App Group bridge between ShieldActionExtension and the host app (M06).
+/// App Group bridge between ShieldActionExtension and the host app (M06 / P03).
 enum ShieldActionBridge {
     static let lastActionKey = "attention.m06.last_shield_action"
     static let lastActionAtKey = "attention.m06.last_shield_action_at"
@@ -21,6 +21,8 @@ enum ShieldActionBridge {
     static let lastHostSeenAtKey = "attention.m06.last_action_host_seen_at"
     static let eventsKey = "attention.m06.intentional_and_continue_events"
     static let hostNeededNoteKey = "attention.m06.host_app_needed_note"
+    static let extensionNoteKey = "attention.p03.last_extension_note"
+    static let hostNeededDefault = "host_app_needed=no — shield actions work with Attention force-quit"
 
     static var suite: UserDefaults? { ShieldCopySettings.suite }
 
@@ -29,6 +31,15 @@ enum ShieldActionBridge {
               let apps = try? JSONDecoder().decode([TrackedApp].self, from: data)
         else { return nil }
         return apps.first(where: { $0.token == token })
+    }
+
+    static func writeExtensionNote(_ note: String) {
+        suite?.set(note, forKey: extensionNoteKey)
+        suite?.set(hostNeededDefault, forKey: hostNeededNoteKey)
+    }
+
+    static func extensionNote() -> String {
+        suite?.string(forKey: extensionNoteKey) ?? "none"
     }
 
     static func record(action: String, token: ApplicationToken) -> ShieldActionEvent {

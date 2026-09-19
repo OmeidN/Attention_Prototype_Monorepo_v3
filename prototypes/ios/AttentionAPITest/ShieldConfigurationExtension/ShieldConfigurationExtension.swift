@@ -2,7 +2,8 @@ import ManagedSettings
 import ManagedSettingsUI
 import UIKit
 
-/// M05 chrome + M11 friction levels from App Group Continue counts.
+/// P03 product shield chrome. Static pause copy (L0–L2 friction copy is P05).
+/// No lab “variant A/B” or `continues_today=(shared OK)` debug in the shipping subtitle.
 final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     override func configuration(shielding application: Application) -> ShieldConfiguration {
         makeConfiguration(token: application.token)
@@ -21,25 +22,17 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     }
 
     private func makeConfiguration(token: ApplicationToken?) -> ShieldConfiguration {
-        InterventionState.ensureToday()
-
-        let label = ShieldCopySettings.userLabel(for: token) ?? "NO_LABEL"
-        let appID = token.flatMap { InterventionState.trackedAppID(for: $0) }
-
+        let label = ShieldCopySettings.userLabel(for: token) ?? "app"
         let titleText = "Attention — \(label)"
-
-        let subtitleText: String
-        let iconName: String
-        let secondaryLabel: String
 
         guard ShieldCopySettings.suite != nil else {
             return ShieldConfiguration(
                 backgroundBlurStyle: .systemMaterial,
                 backgroundColor: UIColor(white: 0.12, alpha: 1),
-                icon: UIImage(systemName: "questionmark.circle"),
+                icon: UIImage(systemName: "pause.circle"),
                 title: ShieldConfiguration.Label(text: titleText, color: .white),
                 subtitle: ShieldConfiguration.Label(
-                    text: "STATE_UNAVAILABLE — extension could not open App Group. Use one static shield; progression→goals/XP.",
+                    text: "Pause. Shared state unavailable — use Never Mind or Continue.",
                     color: UIColor(white: 0.85, alpha: 1)
                 ),
                 primaryButtonLabel: ShieldConfiguration.Label(text: "Never Mind", color: .white),
@@ -48,41 +41,18 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
             )
         }
 
-        if let appID {
-            let continues = InterventionState.continueCount(appID: appID)
-            let level = InterventionState.level(forContinueCount: continues)
-            InterventionState.markLevelShown(level: level, label: label)
-
-            switch level {
-            case 0:
-                subtitleText = "L0 soft: pause a beat. continues_today=\(continues) (shared OK)"
-                iconName = "hourglass"
-                secondaryLabel = "Continue"
-            case 1:
-                subtitleText = "L1 reminder: is this intentional? continues_today=\(continues) (shared OK)"
-                iconName = "exclamationmark.bubble"
-                secondaryLabel = "Continue"
-            default:
-                // ShieldConfiguration has no API to delay/disable Continue — copy-only L2.
-                subtitleText = "L2 Are you sure? continues_today=\(continues) — CONTINUE_DELAY_UNAVAILABLE (shared OK)"
-                iconName = "exclamationmark.triangle.fill"
-                secondaryLabel = "Continue anyway"
-            }
-        } else {
-            subtitleText = "STATE_UNAVAILABLE for token — L0 static. continues unknown."
-            iconName = "hourglass"
-            secondaryLabel = "Continue"
-        }
+        // Product static copy for P03. P05 will escalate tone from continues_today.
+        let subtitleText = "Pause a beat. What did you come here for?"
 
         return ShieldConfiguration(
             backgroundBlurStyle: .systemMaterial,
             backgroundColor: UIColor(white: 0.12, alpha: 1),
-            icon: UIImage(systemName: iconName),
+            icon: UIImage(systemName: "pause.circle"),
             title: ShieldConfiguration.Label(text: titleText, color: .white),
             subtitle: ShieldConfiguration.Label(text: subtitleText, color: UIColor(white: 0.85, alpha: 1)),
             primaryButtonLabel: ShieldConfiguration.Label(text: "Never Mind", color: .white),
             primaryButtonBackgroundColor: UIColor(red: 0.2, green: 0.45, blue: 0.85, alpha: 1),
-            secondaryButtonLabel: ShieldConfiguration.Label(text: secondaryLabel, color: .white)
+            secondaryButtonLabel: ShieldConfiguration.Label(text: "Continue", color: .white)
         )
     }
 }
