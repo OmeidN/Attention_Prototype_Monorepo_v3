@@ -10,6 +10,7 @@ struct AttentionAPITestApp: App {
     @StateObject private var trackedApps = TrackedAppsStore.shared
     @StateObject private var shield = ShieldController.shared
     @StateObject private var accessWindow = AccessWindowController.shared
+    @StateObject private var todayStats = TodayStatsStore.shared
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -53,6 +54,8 @@ struct AttentionAPITestApp: App {
             )
         }
         TestLogger.shared.log("ATTN-P05", "friction \(InterventionState.mappingDescription())")
+        _ = TodayStatsStore.shared.ingest(reason: "app_launch")
+        TestLogger.shared.log("ATTN-P06", "today_home_ready events_today=\(TodayEventLog.events(on: Date()).count)")
         productShellLogger.log("app_launched")
     }
 
@@ -63,6 +66,7 @@ struct AttentionAPITestApp: App {
                 .environmentObject(trackedApps)
                 .environmentObject(shield)
                 .environmentObject(accessWindow)
+                .environmentObject(todayStats)
         }
         .onChange(of: scenePhase) { _, newPhase in
             let name: String
@@ -103,6 +107,7 @@ struct AttentionAPITestApp: App {
                         "day_rollover local_day=\(InterventionState.todayString()) — continues/never_mind cleared"
                     )
                 }
+                _ = TodayStatsStore.shared.ingest(reason: "app_scene_active")
             } else if newPhase == .background {
                 AccessWindowController.shared.sync(
                     reason: "app_scene_background",

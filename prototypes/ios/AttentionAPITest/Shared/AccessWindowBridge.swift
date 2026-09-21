@@ -57,6 +57,15 @@ enum AccessWindowBridge {
             suite?.removeObject(forKey: trackedIdKey)
         }
         suite?.set(userLabel ?? "NO_LABEL", forKey: labelKey)
+
+        TodayEventLog.append(
+            type: "access_window_start",
+            trackedAppId: trackedAppId,
+            userLabel: userLabel ?? "NO_LABEL",
+            durationSeconds: duration,
+            meta: "beginWindow",
+            at: start
+        )
     }
 
     static func markPendingReshield() {
@@ -64,10 +73,37 @@ enum AccessWindowBridge {
     }
 
     static func markReshielded(mechanism: String) {
+        let end = Date()
+        var elapsed: Int?
+        if let startRaw = suite?.string(forKey: startedAtKey),
+           let start = ISO8601DateFormatter().date(from: startRaw) {
+            elapsed = max(0, Int(end.timeIntervalSince(start)))
+        } else if let planned = suite?.object(forKey: durationKey) as? Int {
+            elapsed = planned
+        }
+        let id = trackedId()
+        let lbl = label()
+
         suite?.set(false, forKey: activeKey)
         suite?.set(false, forKey: pendingReshieldKey)
-        suite?.set(ISO8601DateFormatter().string(from: Date()), forKey: lastReshieldAtKey)
+        suite?.set(ISO8601DateFormatter().string(from: end), forKey: lastReshieldAtKey)
         suite?.set(mechanism, forKey: lastReshieldMechanismKey)
+
+        TodayEventLog.append(
+            type: "access_window_end",
+            trackedAppId: id,
+            userLabel: lbl,
+            durationSeconds: elapsed,
+            meta: "mechanism=\(mechanism)",
+            at: end
+        )
+        TodayEventLog.append(
+            type: "reshield_debug",
+            trackedAppId: id,
+            userLabel: lbl,
+            meta: mechanism,
+            at: end
+        )
     }
 
     static func clearWindow(reason: String) {

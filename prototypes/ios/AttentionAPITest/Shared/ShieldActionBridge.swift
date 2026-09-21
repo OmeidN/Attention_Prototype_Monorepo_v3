@@ -71,6 +71,17 @@ enum ShieldActionBridge {
             suite?.set(data, forKey: eventsKey)
         }
 
+        let todayType = action == "intentional_choice" || action == "never_mind"
+            ? "intentional_choice"
+            : action
+        TodayEventLog.append(
+            type: todayType,
+            trackedAppId: app?.id,
+            userLabel: app?.userLabel,
+            at: now,
+            id: event.eventId
+        )
+
         return event
     }
 

@@ -4,8 +4,8 @@ import SwiftUI
 struct RootView: View {
     var body: some View {
         TabView {
-            ProductShellView()
-                .tabItem { Label("Shell", systemImage: "house") }
+            ProductTodayHomeView()
+                .tabItem { Label("Home", systemImage: "house") }
 
             ProductTrackedAppsView()
                 .tabItem { Label("Apps", systemImage: "app.badge") }
@@ -19,4 +19,5 @@ struct RootView: View {
         .environmentObject(TrackedAppsStore.shared)
         .environmentObject(ShieldController.shared)
         .environmentObject(AccessWindowController.shared)
+        .environmentObject(TodayStatsStore.shared)
 }

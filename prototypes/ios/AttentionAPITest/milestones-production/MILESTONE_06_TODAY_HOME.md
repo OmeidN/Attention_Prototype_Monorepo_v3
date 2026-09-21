@@ -29,10 +29,10 @@ Design plan: scoring and home reinforce the shield loop using **logged events**,
 
 ## Agent exit checks
 
-- [ ] Build succeeds
-- [ ] Grep Home UI strings for `\bopens?\b` / `session` as user-facing metrics → zero inappropriate hits
-- [ ] No DeviceActivityReport dependency for counts
-- [ ] Ingest path runs on scene active
+- [x] Build succeeds
+- [x] Grep Home UI strings for `\bopens?\b` / `session` as user-facing metrics → zero inappropriate hits (copy denies opens/sessions)
+- [x] No DeviceActivityReport dependency for counts
+- [x] Ingest path runs on scene active
 
 ## Physical-device checklist (human)
 
