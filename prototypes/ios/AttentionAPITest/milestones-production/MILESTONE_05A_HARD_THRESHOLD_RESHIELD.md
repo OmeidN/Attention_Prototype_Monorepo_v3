@@ -36,24 +36,24 @@ Continue → unblock + arm usage threshold (~window length)
 
 ## Agent exit checks
 
-- [ ] Build succeeds (host + shield action + monitor extension)
-- [ ] Default mode is `on_threshold`
-- [ ] Continue path re-arms monitoring
-- [ ] No “open” / “session_end” labeling for threshold fire
+- [x] Build succeeds (host + shield action + monitor extension)
+- [x] Default mode is `on_threshold`
+- [x] Continue path re-arms monitoring
+- [x] No “open” / “session_end” labeling for threshold fire
 
 ## Physical-device checklist (human)
 
-- [ ] Set a short window (15s or 1 min) on a tracked app; Shield all
-- [ ] Continue → use app → shield returns **without** reopening Attention (force-quit Attention after Continue)
-- [ ] Yank mid-use is acceptable / observed
-- [ ] Second Continue same day still eventually re-shields (re-arm works)
-- [ ] Per-app duration change affects next window
-- [ ] Record trust / timing notes in `PRODUCTION_RESULTS.md`
+- [x] Set a short window (15s or 1 min) on a tracked app; Shield all
+- [x] Continue → use app → shield returns **without** reopening Attention (force-quit Attention after Continue)
+- [x] Yank mid-use is acceptable / observed
+- [x] Second Continue same day still eventually re-shields (re-arm works) — Continue stickiness fixed 2026-09-21
+- [ ] Per-app duration change affects next window (spot-check optional)
+- [x] Record trust / timing notes in `PRODUCTION_RESULTS.md`
 
 ## Definition of done
 
-- [ ] Hard re-shield works with Attention dead
-- [ ] Yank disclosed in UI
-- [ ] Human confirmed on device
+- [x] Hard re-shield works with Attention dead
+- [x] Yank disclosed in UI
+- [x] Human confirmed on device
 
-**Next:** [P06 — Today Home](./MILESTONE_06_TODAY_HOME.md)
+**Next:** [P05B — Hybrid Wall-Clock](./MILESTONE_05B_HYBRID_WALL_CLOCK.md) → then [P06 — Today Home](./MILESTONE_06_TODAY_HOME.md)

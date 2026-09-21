@@ -2,17 +2,36 @@ import DeviceActivity
 import Foundation
 import ManagedSettings
 
-/// M07: writes interval/threshold callbacks into the App Group for the host to read.
-/// M10: optional on_threshold re-shield attempt from this extension.
+/// Usage threshold (P05A) + wall-clock interval end (P05B) hard re-shield without Attention host.
 final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
         DeviceActivityBridge.recordIntervalStart(activity: activity.rawValue)
+        if activity.rawValue == HardWindowMonitor.wallActivityRaw {
+            HardWindowMonitor.suite?.set(
+                "wall_interval_started at=\(ISO8601DateFormatter().string(from: Date()))",
+                forKey: HardWindowMonitor.wallArmSummaryKey
+            )
+        }
     }
 
     override func intervalDidEnd(for activity: DeviceActivityName) {
         super.intervalDidEnd(for: activity)
         DeviceActivityBridge.recordIntervalEnd(activity: activity.rawValue)
+
+        if activity.rawValue == HardWindowMonitor.wallActivityRaw {
+            HardWindowMonitor.suite?.set(
+                "wall_interval_ended at=\(ISO8601DateFormatter().string(from: Date()))",
+                forKey: HardWindowMonitor.wallArmSummaryKey
+            )
+            let applied = ReshieldPolicy.tryWallReshieldFromMonitorExtension()
+            if !applied {
+                HardWindowMonitor.suite?.set(
+                    "wall_interval_end pending_reshield_failed at=\(ISO8601DateFormatter().string(from: Date()))",
+                    forKey: HardWindowMonitor.wallArmSummaryKey
+                )
+            }
+        }
     }
 
     override func eventDidReachThreshold(
@@ -29,9 +48,16 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
             labels: labels
         )
         if ReshieldPolicy.mode() == .onThreshold {
-            // Extension cannot write TestLogger; host reads App Group on next active.
             if !applied {
-                ReshieldPolicy.markPendingThreshold(eventRaw: event.rawValue, labels: labels)
+                let decision = HardWindowMonitor.suite?.string(forKey: HardWindowMonitor.lastUsageThresholdDecisionKey) ?? ""
+                if decision == "premature" {
+                    HardWindowMonitor.suite?.set(
+                        "usage_threshold_skipped_premature event=\(event.rawValue)",
+                        forKey: "attention.p05a.last_hard_reshield_note"
+                    )
+                } else {
+                    ReshieldPolicy.markPendingThreshold(eventRaw: event.rawValue, labels: labels)
+                }
             }
         }
     }

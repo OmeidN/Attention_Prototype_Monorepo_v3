@@ -105,15 +105,26 @@ enum ReshieldPolicy {
         """
     }
 
-    /// Monitor extension: best-effort re-shield when mode is on_threshold.
+    /// Monitor extension: hard re-shield for usage threshold or wall-clock hybrid.
     static func tryReshieldFromMonitorExtension(eventRaw: String, ids: [String], labels: [String]) -> Bool {
-        guard mode() == .onThreshold else { return false }
+        guard mode() == .onThreshold else {
+            HardWindowMonitor.suite?.set("wrong_mode", forKey: HardWindowMonitor.lastUsageThresholdDecisionKey)
+            return false
+        }
+
+        if HardWindowMonitor.shouldIgnorePrematureUsageThreshold() {
+            HardWindowMonitor.suite?.set("premature", forKey: HardWindowMonitor.lastUsageThresholdDecisionKey)
+            return false
+        }
 
         markPendingThreshold(eventRaw: eventRaw, labels: labels)
 
         guard let data = suite?.data(forKey: ShieldCopySettings.trackedAppsKey),
               let apps = try? JSONDecoder().decode([TrackedApp].self, from: data)
-        else { return false }
+        else {
+            HardWindowMonitor.suite?.set("no_targets", forKey: HardWindowMonitor.lastUsageThresholdDecisionKey)
+            return false
+        }
 
         let targets: [TrackedApp]
         if let uuid = UUID(uuidString: eventRaw),
@@ -129,8 +140,29 @@ enum ReshieldPolicy {
             targets = []
         }
 
-        guard !targets.isEmpty else { return false }
+        guard !targets.isEmpty else {
+            HardWindowMonitor.suite?.set("no_targets", forKey: HardWindowMonitor.lastUsageThresholdDecisionKey)
+            return false
+        }
 
+        let ok = applyHardReshield(targets: targets, reason: "usage_threshold")
+        HardWindowMonitor.suite?.set(ok ? "applied" : "apply_failed", forKey: HardWindowMonitor.lastUsageThresholdDecisionKey)
+        return ok
+    }
+
+    /// Wall-clock interval ended — re-shield pending Continue app even if user already left it.
+    static func tryWallReshieldFromMonitorExtension() -> Bool {
+        guard mode() == .onThreshold else { return false }
+        guard let pendingID = HardWindowMonitor.pendingWallAppID() else { return false }
+        guard let data = suite?.data(forKey: ShieldCopySettings.trackedAppsKey),
+              let apps = try? JSONDecoder().decode([TrackedApp].self, from: data),
+              let match = apps.first(where: { $0.id == pendingID })
+        else { return false }
+
+        return applyHardReshield(targets: [match], reason: "wall_clock")
+    }
+
+    private static func applyHardReshield(targets: [TrackedApp], reason: String) -> Bool {
         let store = ManagedSettingsStore()
         var applications = store.shield.applications ?? Set()
         for app in targets {
@@ -138,11 +170,17 @@ enum ReshieldPolicy {
         }
         store.shield.applications = applications
         suite?.set(true, forKey: "attention.m04.last_shield_write_active")
-        recordApplied(mode: .onThreshold, reason: "monitor_extension_threshold", fromExtension: true)
+        recordApplied(mode: .onThreshold, reason: "monitor_extension_\(reason)", fromExtension: true)
         suite?.set(
-            "ATTN-P05A hard_reshield labels=[\(targets.map(\.userLabel).joined(separator: ","))] via=monitor_extension — usage_duration not opens",
+            "ATTN-P05B hard_reshield reason=\(reason) labels=[\(targets.map(\.userLabel).joined(separator: ","))] — hybrid usage|wall not opens",
             forKey: "attention.p05a.last_hard_reshield_note"
         )
+        suite?.set(
+            "\(reason) labels=[\(targets.map(\.userLabel).joined(separator: ","))] at=\(ISO8601DateFormatter().string(from: Date()))",
+            forKey: HardWindowMonitor.lastHybridCloseKey
+        )
+        // Stop wall timer if usage won (or clear after wall fired).
+        HardWindowMonitor.clearWallPending(reason: "after_\(reason)")
         return true
     }
 }

@@ -403,7 +403,9 @@ Resolve before or during early build — none reverse the Access Window Model:
 
 **Honest copy:** “about N minutes of use,” not exact wall-clock; not opens; not leave-detection.
 
-**Milestone:** `milestones-production/MILESTONE_05A_HARD_THRESHOLD_RESHIELD.md`
+**Milestone:** `milestones-production/MILESTONE_05A_HARD_THRESHOLD_RESHIELD.md` + `MILESTONE_05B_HYBRID_WALL_CLOCK.md`
+
+**Hybrid (P05B — PASS 2026-09-21):** wall clock = usage window **+ 60 seconds** (15s debug → 60s product wall). Whichever fires first (usage threshold or wall `intervalDidEnd`) re-shields from the monitor extension — including when the user left the app early. DeviceActivity schedules must span ≥15 minutes (`intervalTooShort` otherwise); implementation past-pads start and uses minute-aligned end (+~1m buffer), so leave-early timing is approximate (e.g. ~2–2.5 min on 15s debug), not a stopwatch.
 
 Gentle host `on_window_end` remains proven (P04) as a non-default option if ever exposed.
 

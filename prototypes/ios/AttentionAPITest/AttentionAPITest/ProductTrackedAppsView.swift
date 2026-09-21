@@ -36,20 +36,22 @@ struct ProductTrackedAppsView: View {
                     row("Auth", FamilyControlsAuth.statusLabel)
                 }
 
-                Section("P05A — Hard closer (set-and-forget)") {
-                    Text("After Continue you get about N minutes of use in that app. Attention will block again when the usage threshold hits — even if Attention is force-quit. This can yank you mid-scroll.")
+                Section("P05B — Hybrid closer (usage + wall)") {
+                    Text(HardWindowMonitor.mappingDescription())
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    row("Closer", "on_threshold · may yank · no Attention required")
-                    row("Unit", "usage duration (not wall-clock, not opens)")
-                    row("Monitor arm", HardWindowMonitor.statusLine())
+                    Text("Examples: 15s debug → 60s wall; 1→2 min; 5→6 min. After Continue, Monitor must show wall_arm_ok code=pad15m_v2 (span_m=15). Old intervalTooShort lines without code= are stale — reinstall + Continue again. Leave early → wait until_end_s (~1–2 min on 15s debug).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    row("Closer", "hybrid · may yank on usage · wall closes if you leave")
+                    row("Monitor / wall", HardWindowMonitor.statusLine())
                     Text(DeviceActivityBridge.statusSummary())
                         .font(.system(.caption2, design: .monospaced))
                         .textSelection(.enabled)
-                    Button("Re-arm thresholds now") {
+                    Button("Re-arm usage thresholds now") {
                         ReshieldPolicy.setMode(.onThreshold)
                         let err = HardWindowMonitor.rearm(apps: trackedApps.apps, reason: "manual_rearm")
-                        logger.log("ATTN-P05A", "manual_rearm \(err.map { "error=\($0)" } ?? "ok")")
+                        logger.log("ATTN-P05B", "manual_rearm \(err.map { "error=\($0)" } ?? "ok")")
                         statusMessage = err.map { "Rearm failed: \($0)" } ?? "Thresholds re-armed for \(trackedApps.apps.count) app(s)."
                     }
                     .disabled(trackedApps.apps.isEmpty)
@@ -144,6 +146,9 @@ struct ProductTrackedAppsView: View {
                     Button("Shield all") {
                         shield.shieldSelected(apps: trackedApps.apps, logTag: "ATTN-P02")
                         ReshieldPolicy.setMode(.onThreshold)
+                        // Drop any prior Continue wall so a leftover intervalDidEnd doesn't
+                        // immediately re-block after the next Continue.
+                        HardWindowMonitor.clearWallPending(reason: "shield_all")
                         let err = HardWindowMonitor.rearm(apps: trackedApps.apps, reason: "shield_all")
                         logger.log(
                             "ATTN-P05A",
@@ -156,6 +161,8 @@ struct ProductTrackedAppsView: View {
                     .disabled(!authApproved || trackedApps.apps.isEmpty)
 
                     Button("Clear shields", role: .destructive) {
+                        HardWindowMonitor.clearWallPending(reason: "clear_shields")
+                        _ = HardWindowMonitor.rearm(apps: [], reason: "clear_shields")
                         shield.clearShield(logTag: "ATTN-P02")
                         statusMessage = "Shields cleared. Tracked apps should open normally."
                     }
@@ -330,7 +337,7 @@ struct ProductTrackedAppsView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
-                Text("Window ≈ \(Self.formatDuration(app.windowDurationSeconds)) of use")
+                Text("Window ≈ \(Self.formatDuration(app.windowDurationSeconds)) use / \(Self.formatDuration(HardWindowMonitor.wallClockSeconds(forUsageWindowSeconds: app.windowDurationSeconds))) wall")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
