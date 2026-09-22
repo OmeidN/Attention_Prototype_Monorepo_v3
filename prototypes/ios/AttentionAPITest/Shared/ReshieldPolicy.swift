@@ -75,13 +75,25 @@ enum ReshieldPolicy {
         suite?.bool(forKey: pendingThresholdKey) == true
     }
 
-    static func recordApplied(mode: ReshieldMode, reason: String, fromExtension: Bool) {
+    static func recordApplied(
+        mode: ReshieldMode,
+        reason: String,
+        fromExtension: Bool,
+        appID: UUID? = nil,
+        userLabel: String? = nil,
+        startedAtISO: String? = nil
+    ) {
         let at = ISO8601DateFormatter().string(from: Date())
         suite?.set(mode.rawValue, forKey: lastModeKey)
         suite?.set(reason, forKey: lastReasonKey)
         suite?.set(at, forKey: lastAppliedAtKey)
         suite?.set(fromExtension, forKey: extensionAppliedKey)
-        AccessWindowBridge.markReshielded(mechanism: "m10_\(mode.rawValue)_\(reason)")
+        AccessWindowBridge.markReshielded(
+            mechanism: "m10_\(mode.rawValue)_\(reason)",
+            trackedAppId: appID,
+            userLabel: userLabel,
+            startedAtISO: startedAtISO
+        )
         clearPendingThreshold()
     }
 
@@ -182,28 +194,21 @@ enum ReshieldPolicy {
         store.shield.applications = applications
         suite?.set(true, forKey: "attention.m04.last_shield_write_active")
 
-        // Per-app window end metrics when wall closes one Continue (don't clobber other apps' pending).
-        if reason == "wall_clock", let app = targets.first,
-           let pending = HardWindowMonitor.pendingWall(forAppID: app.id) {
-            AccessWindowBridge.markReshielded(
-                mechanism: "m10_on_threshold_monitor_extension_wall_clock",
-                trackedAppId: app.id,
+        // Close only this app's window — other apps may still be mid-window.
+        if let app = targets.first {
+            let openStart = AccessWindowBridge.openWindow(forAppID: app.id)?.startedAt
+            recordApplied(
+                mode: .onThreshold,
+                reason: "monitor_extension_\(reason)",
+                fromExtension: true,
+                appID: app.id,
                 userLabel: app.userLabel,
-                startedAtISO: pending.continuedAt
+                startedAtISO: openStart == nil ? HardWindowMonitor.pendingWall(forAppID: app.id)?.continuedAt : nil
             )
-            suite?.set(ReshieldMode.onThreshold.rawValue, forKey: lastModeKey)
-            suite?.set("monitor_extension_wall_clock", forKey: lastReasonKey)
-            suite?.set(ISO8601DateFormatter().string(from: Date()), forKey: lastAppliedAtKey)
-            suite?.set(true, forKey: extensionAppliedKey)
-            clearPendingThreshold()
-            HardWindowMonitor.clearWallPending(reason: "after_wall_clock", appID: app.id)
+            HardWindowMonitor.clearWallPending(reason: "after_\(reason)", appID: app.id)
         } else {
             recordApplied(mode: .onThreshold, reason: "monitor_extension_\(reason)", fromExtension: true)
-            if let app = targets.first {
-                HardWindowMonitor.clearWallPending(reason: "after_\(reason)", appID: app.id)
-            } else {
-                HardWindowMonitor.clearWallPending(reason: "after_\(reason)")
-            }
+            HardWindowMonitor.clearWallPending(reason: "after_\(reason)")
         }
 
         suite?.set(

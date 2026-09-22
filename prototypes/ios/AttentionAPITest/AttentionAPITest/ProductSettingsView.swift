@@ -120,6 +120,10 @@ struct ProductSettingsView: View {
     private func pauseAttention() {
         HardWindowMonitor.clearWallPending(reason: "pause_attention")
         _ = HardWindowMonitor.rearm(apps: [], reason: "pause_attention")
+        let closed = AccessWindowBridge.closeAllOpenWindows(mechanism: "pause_attention")
+        if !closed.isEmpty {
+            logger.log("ATTN-P04", "window_end pause_attention labels=[\(closed.joined(separator: ","))]")
+        }
         shield.clearShield(logTag: "ATTN-P08")
         settings.markPaused()
         statusMessage = "Attention paused — shields cleared."

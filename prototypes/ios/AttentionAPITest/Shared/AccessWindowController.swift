@@ -148,7 +148,7 @@ final class AccessWindowController: ObservableObject {
                 ? "UNSAFE: window end may re-shield while tracked app is foreground."
                 : "on_window_end: re-shield after window when Attention is active (defer if background). No mid-use yank."
         case .onThreshold:
-            return "on_threshold: window end does NOT re-shield; M07 threshold arms re-shield (extension if possible, else host)."
+            return "on_threshold: host window end does NOT re-shield; each Continue's own wall-clock closes that app from the monitor extension."
         case .manualOnly:
             return "manual_only: window end does NOT re-shield; use Manual re-shield button."
         }
@@ -229,10 +229,10 @@ final class AccessWindowController: ObservableObject {
 
         case .onThreshold:
             cancelTimer()
-            AccessWindowBridge.clearWindow(reason: "window_end_wait_threshold")
+            AccessWindowBridge.clearWindow(reason: "window_end_wait_wall")
             TestLogger.shared.log(
                 "ATTN-M10",
-                "window_end no_reshield mode=on_threshold waiting_for_usage_threshold label=\(label) access_window_end_at=\(endAt) reason=\(reason)"
+                "window_end no_reshield mode=on_threshold waiting_for_wall_clock label=\(label) access_window_end_at=\(endAt) reason=\(reason) open_windows=[\(AccessWindowBridge.openWindowLabels().joined(separator: ","))]"
             )
             refreshStatus()
             return
@@ -357,7 +357,13 @@ final class AccessWindowController: ObservableObject {
         }
 
         ShieldController.shared.addTokensToShield(apps: targets, logTag: logTag)
-        ReshieldPolicy.recordApplied(mode: mode, reason: reason, fromExtension: false)
+        ReshieldPolicy.recordApplied(
+            mode: mode,
+            reason: reason,
+            fromExtension: false,
+            appID: targets.first?.id,
+            userLabel: targets.first?.userLabel
+        )
         TestLogger.shared.log(
             logTag,
             "reshielded=true reshield_mode=\(mode.rawValue) reshield_applied_at=\(ReshieldPolicy.suite?.string(forKey: ReshieldPolicy.lastAppliedAtKey) ?? "?") reason=\(reason) mechanism=\(mechanism) labels=[\(targets.map(\.userLabel).joined(separator: ","))]"
@@ -372,7 +378,7 @@ final class AccessWindowController: ObservableObject {
                 "ATTN-P04",
                 "window_end reshielded=true mechanism=\(mechanism) labels=[\(targets.map(\.userLabel).joined(separator: ","))] access_window_end_at=\(AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.endAtKey) ?? "?") unit=access_window — not session_end"
             )
-            AccessWindowBridge.markReshielded(mechanism: mechanism)
+            // recordApplied already logged access_window_end for this app.
         }
         refreshStatus()
     }

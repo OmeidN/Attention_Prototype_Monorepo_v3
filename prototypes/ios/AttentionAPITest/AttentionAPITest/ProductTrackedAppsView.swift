@@ -152,6 +152,10 @@ struct ProductTrackedAppsView: View {
                         // immediately re-block after the next Continue.
                         HardWindowMonitor.clearWallPending(reason: "shield_all")
                         _ = HardWindowMonitor.rearm(apps: [], reason: "shield_all")
+                        let closed = AccessWindowBridge.closeAllOpenWindows(mechanism: "manual_shield_all")
+                        if !closed.isEmpty {
+                            logger.log("ATTN-P04", "window_end manual_shield_all labels=[\(closed.joined(separator: ","))]")
+                        }
                         logger.log(
                             "ATTN-P05B",
                             "shield_all wall_only \(HardWindowMonitor.statusLine())"
@@ -165,6 +169,10 @@ struct ProductTrackedAppsView: View {
                     Button("Clear shields", role: .destructive) {
                         HardWindowMonitor.clearWallPending(reason: "clear_shields")
                         _ = HardWindowMonitor.rearm(apps: [], reason: "clear_shields")
+                        let closed = AccessWindowBridge.closeAllOpenWindows(mechanism: "manual_clear_shields")
+                        if !closed.isEmpty {
+                            logger.log("ATTN-P04", "window_end manual_clear_shields labels=[\(closed.joined(separator: ","))]")
+                        }
                         shield.clearShield(logTag: "ATTN-P02")
                         statusMessage = "Shields cleared. Tracked apps should open normally."
                     }

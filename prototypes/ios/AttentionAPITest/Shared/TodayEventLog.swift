@@ -151,8 +151,11 @@ final class TodayStatsStore: ObservableObject {
             let id = AccessWindowBridge.trackedId()
             let label = AccessWindowBridge.label()
             let ts = ISO8601DateFormatter().date(from: startAt) ?? Date()
+            // Dedupe per app: two apps can start/close inside the same second.
             let already = TodayEventLog.load().contains {
-                $0.type == "access_window_start" && abs($0.timestamp.timeIntervalSince(ts)) < 2
+                $0.type == "access_window_start"
+                    && $0.trackedAppId == id
+                    && abs($0.timestamp.timeIntervalSince(ts)) < 2
             }
             if !already {
                 TodayEventLog.append(
@@ -173,30 +176,40 @@ final class TodayStatsStore: ObservableObject {
         let lastEnd = AccessWindowBridge.suite?.string(forKey: Self.lastIngestedReshieldKey)
         if let reshieldAt, reshieldAt != lastEnd {
             let mech = AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.lastReshieldMechanismKey) ?? "?"
-            let planned = AccessWindowBridge.suite?.object(forKey: AccessWindowBridge.durationKey) as? Int
-            var elapsed = planned
-            if let startRaw = AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.startedAtKey),
+            // Attribute to the app that actually closed, not the latest Continue.
+            let closedIdRaw = AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.lastReshieldAppIdKey)
+            let closedId = closedIdRaw.flatMap(UUID.init(uuidString:)) ?? AccessWindowBridge.trackedId()
+            let closedLabel = AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.lastReshieldLabelKey)
+                ?? AccessWindowBridge.label()
+            let recordedElapsed = AccessWindowBridge.suite?.object(forKey: AccessWindowBridge.lastReshieldElapsedKey) as? Int
+            var elapsed = (recordedElapsed ?? -1) >= 0
+                ? recordedElapsed
+                : AccessWindowBridge.suite?.object(forKey: AccessWindowBridge.durationKey) as? Int
+            if elapsed == nil,
+               let startRaw = AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.startedAtKey),
                let start = ISO8601DateFormatter().date(from: startRaw),
                let end = ISO8601DateFormatter().date(from: reshieldAt) {
                 elapsed = max(0, Int(end.timeIntervalSince(start)))
             }
             let endTs = ISO8601DateFormatter().date(from: reshieldAt) ?? Date()
             let alreadyEnd = TodayEventLog.load().contains {
-                $0.type == "access_window_end" && abs($0.timestamp.timeIntervalSince(endTs)) < 2
+                $0.type == "access_window_end"
+                    && $0.trackedAppId == closedId
+                    && abs($0.timestamp.timeIntervalSince(endTs)) < 2
             }
             if !alreadyEnd {
                 TodayEventLog.append(
                     type: "access_window_end",
-                    trackedAppId: AccessWindowBridge.trackedId(),
-                    userLabel: AccessWindowBridge.label(),
+                    trackedAppId: closedId,
+                    userLabel: closedLabel,
                     durationSeconds: elapsed,
                     meta: "mechanism=\(mech)",
                     at: endTs
                 )
                 TodayEventLog.append(
                     type: "reshield_debug",
-                    trackedAppId: AccessWindowBridge.trackedId(),
-                    userLabel: AccessWindowBridge.label(),
+                    trackedAppId: closedId,
+                    userLabel: closedLabel,
                     meta: mech,
                     at: endTs
                 )
@@ -308,6 +321,7 @@ final class TodayStatsStore: ObservableObject {
     private func suiteClearIngestCursors() {
         AccessWindowBridge.suite?.removeObject(forKey: Self.lastIngestedStartKey)
         AccessWindowBridge.suite?.removeObject(forKey: Self.lastIngestedReshieldKey)
+        AccessWindowBridge.saveOpenWindows([:])
         // Mark cursors as current so the next ingest does not re-copy the last window.
         if let startAt = AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.startedAtKey) {
             AccessWindowBridge.suite?.set(startAt, forKey: Self.lastIngestedStartKey)
