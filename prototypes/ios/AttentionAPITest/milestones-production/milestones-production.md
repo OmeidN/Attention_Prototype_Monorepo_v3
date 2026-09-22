@@ -37,7 +37,7 @@ Spine: shield at the door → Never Mind or timed Continue → re-shield → rew
 4. Friction L0→L2 from `continues_today` via App Group is trustworthy; no Continue-delay API.
 5. Shielded apps suppress notifications — design with honesty, not bypass.
 6. Monitor extension can re-shield while host is dead (`on_threshold`); may interrupt mid-use.
-7. Hybrid closer (P05B): usage **or** wall-clock backup; wall product map window+60s (15s→60s); DA ≥15m schedule + past-pad; leave-early timing approximate (minute-aligned).
+7. Wall closer (P05B): **wall-only** (`max(60, window)`; 15s/1min→60s); DA ≥15m schedule + past-pad; minute-aligned. Usage threshold off.
 
 ## Milestone index
 
@@ -50,7 +50,7 @@ Spine: shield at the door → Never Mind or timed Continue → re-shield → rew
 | P04 | [MILESTONE_04_ACCESS_WINDOWS.md](./MILESTONE_04_ACCESS_WINDOWS.md) | Timed windows + host `on_window_end` (gentle path — proven) |
 | P05 | [MILESTONE_05_FRICTION_LADDER.md](./MILESTONE_05_FRICTION_LADDER.md) | L0–L2 product copy from `continues_today` |
 | P05A | [MILESTONE_05A_HARD_THRESHOLD_RESHIELD.md](./MILESTONE_05A_HARD_THRESHOLD_RESHIELD.md) | **Default closer:** per-app usage threshold + extension hard re-shield (yank OK) |
-| P05B | [MILESTONE_05B_HYBRID_WALL_CLOCK.md](./MILESTONE_05B_HYBRID_WALL_CLOCK.md) | Hybrid: usage OR wall (=window+60s); leave early still re-shields |
+| P05B | [MILESTONE_05B_HYBRID_WALL_CLOCK.md](./MILESTONE_05B_HYBRID_WALL_CLOCK.md) | Wall-only closer (`max(60,window)`); usage OFF |
 | P06 | [MILESTONE_06_TODAY_HOME.md](./MILESTONE_06_TODAY_HOME.md) | Host ingest + Today home (honest metrics) |
 | P07 | [MILESTONE_07_GOALS_XP_STREAKS.md](./MILESTONE_07_GOALS_XP_STREAKS.md) | Goals, XP, streaks on logged events |
 | P08 | [MILESTONE_08_SETTINGS_AND_BUDGET.md](./MILESTONE_08_SETTINGS_AND_BUDGET.md) | Continue budget, Pause Attention (windows live on Apps / P05A) |

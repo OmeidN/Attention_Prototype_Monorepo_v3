@@ -105,8 +105,12 @@ enum ReshieldPolicy {
         """
     }
 
-    /// Monitor extension: hard re-shield for usage threshold or wall-clock hybrid.
+    /// Monitor extension: usage threshold path (disabled — wall-only closer).
     static func tryReshieldFromMonitorExtension(eventRaw: String, ids: [String], labels: [String]) -> Bool {
+        guard HardWindowMonitor.usageCloserEnabled else {
+            HardWindowMonitor.suite?.set("usage_disabled", forKey: HardWindowMonitor.lastUsageThresholdDecisionKey)
+            return false
+        }
         guard mode() == .onThreshold else {
             HardWindowMonitor.suite?.set("wrong_mode", forKey: HardWindowMonitor.lastUsageThresholdDecisionKey)
             return false
@@ -172,7 +176,7 @@ enum ReshieldPolicy {
         suite?.set(true, forKey: "attention.m04.last_shield_write_active")
         recordApplied(mode: .onThreshold, reason: "monitor_extension_\(reason)", fromExtension: true)
         suite?.set(
-            "ATTN-P05B hard_reshield reason=\(reason) labels=[\(targets.map(\.userLabel).joined(separator: ","))] — hybrid usage|wall not opens",
+            "ATTN-P05B hard_reshield reason=\(reason) labels=[\(targets.map(\.userLabel).joined(separator: ","))] — wall-only closer not opens",
             forKey: "attention.p05a.last_hard_reshield_note"
         )
         suite?.set(

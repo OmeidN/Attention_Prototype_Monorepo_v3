@@ -64,7 +64,7 @@ struct ProductShellView: View {
                 }
 
                 Section("Home (placeholder)") {
-                    Text("Default closer: hard usage threshold (P05A) — may yank; Attention need not stay open. Today metrics are P06.")
+                    Text("Default closer: wall-clock (P05B) — may yank; Attention need not stay open. Usage threshold OFF. Today metrics are P06.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

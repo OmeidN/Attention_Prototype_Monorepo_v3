@@ -1,32 +1,31 @@
-# P05B — Hybrid Wall-Clock Close
+# P05B — Wall-Clock Close (usage off)
 
-**Goal:** re-shield even if the user leaves the app before usage threshold accumulates. Hybrid closer: **usage threshold OR wall-clock**, whichever comes first. Wall duration = usage window **+ 1 minute** (e.g. 1 min use → 2 min wall, 5 → 6).
+**Goal:** re-shield on wall-clock after Continue. **In-app usage threshold is disabled** (DeviceActivity usage was losing to wall / false-fire rearms). Wall duration = `max(60, window)` seconds (15s + 1 min → **60s**; 5 min → 5 min).
 
-**User-visible change:** Apps tab shows usage vs wall mapping. Leave-before-window-end still closes the door on wall clock without opening Attention.
+**User-visible change:** Apps tab shows wall-only mapping. Stay or leave — door closes on wall (~minute-aligned).
 
-**Prerequisite:** P05A (hard usage threshold) working on device.
+**Prerequisite:** P05A proven historically; current closer is wall-only.
 
-**Agent rule:** this milestone only. Honest copy: wall is real-time backup; usage may yank sooner.
+**Agent rule:** honest copy — wall is approximate (minute snap), not a stopwatch.
 
 ## Steps
 
-1. `wallSeconds`: **15s debug → 60s wall**; otherwise `usageWindowSeconds + 60` (1→2, 5→6 min). Apple requires DeviceActivity schedule span ≥ **15 minutes** (`intervalTooShort` otherwise) — pad `intervalStart` into the past so `intervalDidEnd` still lands at now+wall.
-2. On Continue: keep usage re-arm; also start a one-shot DeviceActivity schedule now→now+wall; store pending app id in App Group.
-3. Monitor `intervalDidEnd` for wall activity → extension re-shields that app (Attention may be dead; user need not be in the app).
-4. Whichever fires first wins; second is no-op if already shielded.
-5. Tag `ATTN-P05B`.
+1. `wallSeconds`: **`max(60, window)`** — 15s/1min → 60s; longer → window length. Apple requires schedule span ≥ **15 minutes** — past-pad `intervalStart`.
+2. On Continue: **do not** arm usage events; start one-shot wall schedule; store pending app id in App Group.
+3. Monitor `intervalDidEnd` for wall activity → extension re-shields.
+4. Tag `ATTN-P05B` / `wall_only_v1`.
 
 ## Physical-device checklist
 
-- [x] 15s debug: Continue → leave immediately → shield returns ~2–2.5 min (minute-aligned wall; not exact 60s) without needing tracked app or Attention open — human 2026-09-21
-- [x] Stay in app: usage threshold still yanks — human 2026-09-21
-- [ ] 5 min window → wall ~6 min leave-early path (not required for PASS; optional later dogfood)
+- [x] 15s debug leave-early wall (historical hybrid PASS) — human 2026-09-21
+- [ ] Wall-only: 15s or 1 min Settings → Continue → shield returns ~1–2 min (`last_close=wall_clock`, `code=wall_only_v1`, `until_end_s` small)
+- [ ] 5 min window → wall ~5–6 min (minute snap)
 - [x] Record in PRODUCTION_RESULTS
 
-## Device notes (2026-09-21)
+## Device notes (2026-09-22)
 
-- Apple `intervalTooShort` if schedule span &lt; 15 minutes → past-pad `intervalStart`.
-- Arm code `pad15m_v2`; product wall still mapped 15s→60s / else window+60s.
-- Immediate post-Continue reshield mitigated (`includesPastActivity=false` + **3s** premature grace). Ignoring a premature fire **re-arms** usage monitoring (max 2 retries) so Apple’s once-per-interval rule does not skip the real yank and leave only the ~1–2 min wall.
+- Arm code `wall_only_v1`; product wall `max(60, window)`.
+- Near local midnight: clamp start to start-of-today; reject far `nextInterval`.
+- Usage closer OFF (`usageCloserEnabled=false`); leftover usage callbacks ignored.
 
-**Next:** P06 Today Home
+**Next:** P06 Today Home (already shipped) / continue P08+ dogfood

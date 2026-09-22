@@ -2,7 +2,7 @@ import Foundation
 import DeviceActivity
 import ManagedSettings
 
-/// P05A/P05B: usage-threshold + wall-clock hybrid closer (Attention may be quit).
+/// P05B wall-clock closer (Attention may be quit). In-app usage threshold is off — DA was unreliable vs wall.
 enum HardWindowMonitor {
     static let activityRaw = "attention.p05a.hard_window"
     static var activityName: DeviceActivityName { DeviceActivityName(activityRaw) }
@@ -13,16 +13,18 @@ enum HardWindowMonitor {
     static let lastArmAtKey = "attention.p05a.last_arm_at"
     static let lastArmErrorKey = "attention.p05a.last_arm_error"
     static let lastArmSummaryKey = "attention.p05a.last_arm_summary"
-    /// ISO timestamp of last usage-monitor arm — used to ignore immediate false threshold fires.
+    /// ISO timestamp of last usage-monitor arm — legacy; usage closer disabled.
     static let lastUsageArmAtKey = "attention.p05a.last_usage_arm_at"
-    /// Shortest per-app threshold (seconds) from last rearm — grace floor for premature ignore.
+    /// Wall-clock when user hit Continue.
+    static let continueSessionAtKey = "attention.p05a.continue_session_at"
     static let lastUsageThresholdSecondsKey = "attention.p05a.last_usage_threshold_s"
     static let lastPrematureIgnoreKey = "attention.p05a.last_premature_threshold_ignore"
-    /// Set by tryReshieldFromMonitorExtension: premature | applied | no_targets | wrong_mode
     static let lastUsageThresholdDecisionKey = "attention.p05a.last_usage_threshold_decision"
-    /// How many times we re-armed after ignoring a premature fire (once-per-interval otherwise eats the real yank).
     static let prematureRetryCountKey = "attention.p05a.premature_retry_count"
-    static let maxPrematureRetries = 2
+    static let maxPrematureRetries = 0
+
+    /// In-app DeviceActivity usage closer disabled — wall-only after Continue.
+    static let usageCloserEnabled = false
 
     static let wallPendingIdKey = "attention.p05b.wall_pending_app_id"
     static let wallPendingLabelKey = "attention.p05b.wall_pending_label"
@@ -33,22 +35,25 @@ enum HardWindowMonitor {
 
     static var suite: UserDefaults? { ShieldCopySettings.suite }
 
-    /// Product-facing wall duration (leave-early backup). Usage path can still be shorter.
-    /// DeviceActivitySchedule itself requires ≥15 minutes (see `armWallClock` past-padding).
+    /// Product wall = access window, floored at 60s (15s debug + 1 min → 60s; 5 min → 5 min).
+    /// DeviceActivitySchedule requires ≥15 minutes span (see `armWallClock` past-padding); end is minute-aligned.
     static func wallClockSeconds(forUsageWindowSeconds usage: Int) -> Int {
-        let clamped = max(15, usage)
-        if clamped <= 15 { return 60 }
-        return clamped + 60
+        max(60, max(15, usage))
+    }
+
+    /// Legacy helper for UI — usage closer is off; value unused for monitoring.
+    static func deviceActivityThresholdSeconds(forUsageWindowSeconds usage: Int) -> Int {
+        wallClockSeconds(forUsageWindowSeconds: usage)
     }
 
     /// Apple: DeviceActivity schedule interval must be ≥ 15 minutes or startMonitoring throws intervalTooShort.
     static let deviceActivityMinIntervalSeconds = 15 * 60
 
-    /// Bumped when wall-arm algorithm changes — must appear in `wall_arm_ok` / failed lines after install.
-    static let wallArmCode = "pad15m_v2"
+    /// Bumped when wall-arm algorithm / closer mode changes — must appear in `wall_arm_ok` after install.
+    static let wallArmCode = "wall_only_v1"
 
     static func mappingDescription() -> String {
-        "hybrid: usage≈window OR wall (15s→60s debug; else window+60s). DA schedule padded ≥15m (past start, \(wallArmCode))."
+        "wall-only closer: 15s/1min UI → ~60s wall (minute snap ≈1–2 min); longer windows → wall≈window. Usage threshold OFF."
     }
 
     static func dateComponents(forSeconds seconds: Int) -> DateComponents {
@@ -62,124 +67,63 @@ enum HardWindowMonitor {
         return DateComponents(second: clamped)
     }
 
-    /// Stop + start all-day monitoring with one event per tracked app (threshold = that app's window).
+    /// Stops legacy usage-threshold monitoring. Does not start it (`usageCloserEnabled=false`).
     @discardableResult
     static func rearm(apps: [TrackedApp], reason: String) -> String? {
         let center = DeviceActivityCenter()
         center.stopMonitoring([activityName])
+        DeviceActivityBridge.markMonitoringStopped()
 
-        guard !apps.isEmpty else {
-            DeviceActivityBridge.markMonitoringStopped()
-            let msg = "rearm_cleared reason=\(reason) apps=0"
-            suite?.set(msg, forKey: lastArmSummaryKey)
-            suite?.set(ISO8601DateFormatter().string(from: Date()), forKey: lastArmAtKey)
-            suite?.removeObject(forKey: lastArmErrorKey)
-            return nil
-        }
-
-        let schedule = DeviceActivitySchedule(
-            intervalStart: DateComponents(hour: 0, minute: 0, second: 0),
-            intervalEnd: DateComponents(hour: 23, minute: 59, second: 59),
-            repeats: true
-        )
-
-        var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
-        var parts: [String] = []
-        var minThreshold = Int.max
-        for app in apps {
+        let parts = apps.map { app -> String in
             let secs = max(15, app.windowDurationSeconds)
-            minThreshold = min(minThreshold, secs)
-            let name = DeviceActivityEvent.Name(app.id.uuidString)
-            // includesPastActivity=false (iOS 17.4+): otherwise today's prior Instagram use (≥15s) makes
-            // eventDidReachThreshold fire immediately on every Continue rearm → shield never lifts.
-            let threshold = dateComponents(forSeconds: secs)
-            if #available(iOS 17.4, *) {
-                events[name] = DeviceActivityEvent(
-                    applications: [app.token],
-                    threshold: threshold,
-                    includesPastActivity: false
-                )
-            } else {
-                events[name] = DeviceActivityEvent(
-                    applications: [app.token],
-                    threshold: threshold
-                )
-            }
             let wall = wallClockSeconds(forUsageWindowSeconds: secs)
-            parts.append("\(app.userLabel)=use\(secs)s/wall\(wall)s")
+            return "\(app.userLabel)=ui\(secs)s/wall\(wall)s"
         }
-        if minThreshold == Int.max { minThreshold = 15 }
-
-        do {
-            try center.startMonitoring(activityName, during: schedule, events: events)
-            let maxMinutes = apps.map { max(15, $0.windowDurationSeconds) }.max().map { max(1, $0 / 60) } ?? 1
-            DeviceActivityBridge.markMonitoringStarted(
-                ids: apps.map(\.id.uuidString),
-                labels: apps.map(\.userLabel),
-                thresholdMinutes: maxMinutes
-            )
-            let armAt = ISO8601DateFormatter().string(from: Date())
-            let summary = "rearm_ok reason=\(reason) apps=\(apps.count) [\(parts.joined(separator: ","))] hybrid=usage+wall past_activity=false"
-            suite?.set(summary, forKey: lastArmSummaryKey)
-            suite?.set(armAt, forKey: lastArmAtKey)
-            suite?.set(armAt, forKey: lastUsageArmAtKey)
-            suite?.set(minThreshold, forKey: lastUsageThresholdSecondsKey)
-            if reason == "continue" || reason == "shield_all" || reason.hasPrefix("temp_") {
-                suite?.set(0, forKey: prematureRetryCountKey)
-            }
-            suite?.removeObject(forKey: lastArmErrorKey)
-            return nil
-        } catch {
-            let err = String(describing: error)
-            suite?.set(err, forKey: lastArmErrorKey)
-            suite?.set("rearm_failed reason=\(reason) error=\(err)", forKey: lastArmSummaryKey)
-            suite?.set(ISO8601DateFormatter().string(from: Date()), forKey: lastArmAtKey)
-            DeviceActivityBridge.markMonitoringStopped()
-            return err
+        let armAt = ISO8601DateFormatter().string(from: Date())
+        let summary = "usage_closer=off reason=\(reason) apps=\(apps.count) [\(parts.joined(separator: ","))] wall_only"
+        suite?.set(summary, forKey: lastArmSummaryKey)
+        suite?.set(armAt, forKey: lastArmAtKey)
+        suite?.removeObject(forKey: lastArmErrorKey)
+        suite?.set(0, forKey: prematureRetryCountKey)
+        if reason == "continue" {
+            suite?.set(armAt, forKey: continueSessionAtKey)
         }
+        return nil
     }
 
-    /// True when threshold fired too soon after arm (known DeviceActivity false positive).
-    /// Caller should not re-shield; should re-arm usage monitoring (once-per-interval) so a real yank can still fire.
-    /// Wall-clock backup still closes the door if usage never wins.
+    /// Minimum wall-clock seconds since Continue before we trust a usage-threshold callback.
+    /// Keep this short: each premature *re-arm* resets usage accumulation (`includesPastActivity=false`),
+    /// so a long gate + many rearms made 1‑min windows feel like 2+ minutes.
+    static func minElapsedBeforeUsageYank(thresholdSeconds: Int) -> TimeInterval {
+        _ = thresholdSeconds
+        return 15
+    }
+
+    /// True when threshold fired too soon after *Continue* (not after a premature re-arm).
+    /// Caller should not re-shield; should re-arm usage monitoring so a later real yank can fire.
     static func shouldIgnorePrematureUsageThreshold() -> Bool {
-        guard let raw = suite?.string(forKey: lastUsageArmAtKey),
-              let armAt = ISO8601DateFormatter().date(from: raw)
+        let threshold = suite?.object(forKey: lastUsageThresholdSecondsKey) as? Int ?? 60
+        let minElapsed = minElapsedBeforeUsageYank(thresholdSeconds: threshold)
+
+        let anchorRaw = suite?.string(forKey: continueSessionAtKey)
+            ?? suite?.string(forKey: lastUsageArmAtKey)
+        guard let anchorRaw,
+              let anchor = ISO8601DateFormatter().date(from: anchorRaw)
         else { return false }
-        // Only ignore near-immediate false fires. A wide grace (e.g. 13s on a 15s window) + Apple's
-        // once-per-interval rule ate the real yank and left only the ~1–2 min wall close.
-        let grace: TimeInterval = 3
-        let elapsed = Date().timeIntervalSince(armAt)
-        if elapsed < grace {
-            let threshold = suite?.object(forKey: lastUsageThresholdSecondsKey) as? Int ?? 15
-            let note = "premature_threshold_ignored elapsed_s=\(Int(elapsed)) grace_s=\(Int(grace)) threshold_s=\(threshold) at=\(ISO8601DateFormatter().string(from: Date()))"
+
+        let elapsed = Date().timeIntervalSince(anchor)
+        if elapsed < minElapsed {
+            let note = "premature_threshold_ignored elapsed_since_continue_s=\(Int(elapsed)) min_s=\(Int(minElapsed)) threshold_s=\(threshold) at=\(ISO8601DateFormatter().string(from: Date()))"
             suite?.set(note, forKey: lastPrematureIgnoreKey)
             return true
         }
         return false
     }
 
-    /// After ignoring a premature fire, restart usage monitoring so threshold can fire again for real use.
-    /// Does not touch the wall schedule. Caps retries to avoid an immediate-fire loop.
+    /// Usage closer disabled — never re-arm thresholds.
     @discardableResult
     static func rearmAfterPrematureIgnore() -> String {
-        let retries = (suite?.object(forKey: prematureRetryCountKey) as? Int) ?? 0
-        guard retries < maxPrematureRetries else {
-            let msg = "premature_rearm_capped retries=\(retries) — relying on wall_clock"
-            suite?.set(msg, forKey: lastPrematureIgnoreKey)
-            return msg
-        }
-        guard let data = suite?.data(forKey: ShieldCopySettings.trackedAppsKey),
-              let apps = try? JSONDecoder().decode([TrackedApp].self, from: data),
-              !apps.isEmpty
-        else {
-            return "premature_rearm_no_apps"
-        }
-        suite?.set(retries + 1, forKey: prematureRetryCountKey)
-        if let err = rearm(apps: apps, reason: "premature_retry_\(retries + 1)") {
-            return "premature_rearm_failed error=\(err)"
-        }
-        let msg = "premature_rearm_ok retry=\(retries + 1)/\(maxPrematureRetries)"
+        let msg = "usage_closer=off — ignore premature (wall-only)"
         suite?.set(msg, forKey: lastPrematureIgnoreKey)
         return msg
     }
@@ -188,7 +132,11 @@ enum HardWindowMonitor {
     ///
     /// Apple requires schedule span ≥ 15 minutes (`intervalTooShort` otherwise). For shorter
     /// product walls we pad `intervalStart` into the past so `intervalDidEnd` still lands near
-    /// now + wallSeconds (Screen Time workaround). Components are minute-aligned (no seconds).
+    /// now + wallSeconds. End is rounded up to the next minute boundary (no extra +1 minute).
+    ///
+    /// Near local midnight, `end - 15m` can fall on the previous calendar day. Do **not** clamp
+    /// to 23:59 today (that caused ~24h waits: until_end_s≈86000). Instead pull start to
+    /// start-of-today and extend end only if the span would be under 15 minutes.
     @discardableResult
     static func armWallClock(for app: TrackedApp, reason: String) -> String? {
         let center = DeviceActivityCenter()
@@ -198,28 +146,34 @@ enum HardWindowMonitor {
         let wallSecs = wallClockSeconds(forUsageWindowSeconds: usage)
         let calendar = Calendar.current
         let now = Date()
+        let dayStart = calendar.startOfDay(for: now)
 
-        // Whole minutes only — DeviceActivity often ignores/truncates seconds.
-        let wallMinutes = max(1, (wallSecs + 59) / 60)
-        guard let nowMinute = calendar.date(bySetting: .second, value: 0, of: now),
-              let end = calendar.date(byAdding: .minute, value: wallMinutes + 1, to: nowMinute),
-              let start = calendar.date(byAdding: .minute, value: -15, to: end)
-        else {
+        // End ≈ now + wallSecs, snapped up to a whole minute (DeviceActivity is minute-granular).
+        let endTarget = now.addingTimeInterval(TimeInterval(wallSecs))
+        guard var endDate = calendar.date(bySetting: .second, value: 0, of: endTarget) else {
             let msg = "wall_arm_failed reason=\(reason) error=date_math code=\(wallArmCode)"
             suite?.set(msg, forKey: wallArmSummaryKey)
             return "date_math"
         }
+        if endDate.timeIntervalSince(now) < TimeInterval(wallSecs) {
+            endDate = calendar.date(byAdding: .minute, value: 1, to: endDate) ?? endDate
+        }
 
-        // Midnight: keep a valid same-day ≥15m span ending today if possible.
-        var startDate = start
-        var endDate = end
-        if !calendar.isDate(startDate, inSameDayAs: endDate) {
-            if let eod = calendar.date(bySettingHour: 23, minute: 59, second: 0, of: nowMinute),
-               let sod = calendar.date(byAdding: .minute, value: -15, to: eod),
-               calendar.isDate(sod, inSameDayAs: eod) {
-                startDate = sod
-                endDate = eod
+        var startDate = endDate.addingTimeInterval(-TimeInterval(deviceActivityMinIntervalSeconds))
+        if startDate < dayStart {
+            // Past-pad would cross midnight — keep interval on today only.
+            startDate = dayStart
+            let minEnd = dayStart.addingTimeInterval(TimeInterval(deviceActivityMinIntervalSeconds))
+            if endDate < minEnd {
+                endDate = minEnd
             }
+        }
+
+        // If end would spill into tomorrow, clamp to today 23:59 and keep ≥15m span.
+        if !calendar.isDate(endDate, inSameDayAs: now) {
+            endDate = calendar.date(bySettingHour: 23, minute: 59, second: 0, of: now) ?? endDate
+            startDate = endDate.addingTimeInterval(-TimeInterval(deviceActivityMinIntervalSeconds))
+            if startDate < dayStart { startDate = dayStart }
         }
 
         let startDC = DateComponents(
@@ -238,17 +192,30 @@ enum HardWindowMonitor {
         )
 
         let spanMinutes = Int(endDate.timeIntervalSince(startDate) / 60)
+        let untilEndS = max(0, Int(endDate.timeIntervalSince(now)))
         let next = schedule.nextInterval
         let nextDesc: String
         if let next {
             let nextSpan = Int(next.end.timeIntervalSince(next.start))
-            nextDesc = "next=\(ISO8601DateFormatter().string(from: next.start))→\(ISO8601DateFormatter().string(from: next.end)) next_span_s=\(nextSpan)"
+            let nextUntil = Int(next.end.timeIntervalSince(now))
+            nextDesc = "next=\(ISO8601DateFormatter().string(from: next.start))→\(ISO8601DateFormatter().string(from: next.end)) next_span_s=\(nextSpan) next_until_s=\(nextUntil)"
+            // Refuse absurd schedules (e.g. next fire ~24h).
+            if nextUntil > wallSecs + 20 * 60 {
+                let err = "wall_arm_rejected_far_next next_until_s=\(nextUntil) wall_s=\(wallSecs)"
+                suite?.set("\(err) code=\(wallArmCode) reason=\(reason) \(nextDesc)", forKey: wallArmSummaryKey)
+                return err
+            }
         } else {
             nextDesc = "next=nil"
         }
 
+        if untilEndS > wallSecs + 20 * 60 {
+            let err = "wall_arm_rejected_far_end until_end_s=\(untilEndS) wall_s=\(wallSecs)"
+            suite?.set("\(err) code=\(wallArmCode) reason=\(reason) \(nextDesc)", forKey: wallArmSummaryKey)
+            return err
+        }
+
         let padPastS = max(0, Int(now.timeIntervalSince(startDate)))
-        let untilEndS = max(0, Int(endDate.timeIntervalSince(now)))
         suite?.set(app.id.uuidString, forKey: wallPendingIdKey)
         suite?.set(app.userLabel, forKey: wallPendingLabelKey)
         suite?.set(wallSecs, forKey: wallSecondsKey)

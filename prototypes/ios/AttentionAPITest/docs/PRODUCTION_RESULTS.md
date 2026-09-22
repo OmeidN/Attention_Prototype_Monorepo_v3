@@ -31,10 +31,10 @@ Chose **evolved lab project** over a brand-new `com.attention.app` target so P00
 | P04 | Access windows + on_window_end | **PASS** | Human 2026-09-19. Window + on_window_end + deferred re-shield OK. |
 | P05 | Friction ladder L0–L2 | **PASS** | Human 2026-09-19. L0→L1→L2 trustworthy across rapid cycles + force-quit. |
 | P05A | Hard threshold re-shield | **PASS** | Human 2026-09-19–21. Usage yank works with Attention force-quit; Continue re-arms. Immediate false threshold after rearm mitigated (`includesPastActivity=false` + grace). |
-| P05B | Hybrid wall-clock close | **PASS** | Human 2026-09-21. Leave-early wall re-shield ~2–2.5 min on 15s debug (minute-aligned DA schedule + 15m past-pad; product map 15s→60s wall). Usage still yanks if staying in-app. `pad15m_v2`. |
+| P05B | Hybrid wall-clock close | **PASS → wall-only** | Human 2026-09-21 hybrid PASS. **2026-09-22:** usage closer disabled (`wall_only_v1`); wall=`max(60,window)` so 15s/1min→~60s (minute snap ≈1–2 min). Awaiting device confirm. |
 | P06 | Today home ingest | **PASS** | Human 2026-09-21. Never Mind / Continue / window time update on yank + leave-early wall; force-quit OK; day filter: jump to 23rd → zeros, back to 21st → prior totals restored (filter not wipe). |
-| P07 | Goals / XP / streaks | AWAITING HUMAN | Agent 2026-09-21: ScoringRules + Home XP/streak/goals. Weights in `docs/SCORING_WEIGHTS.md`. Build OK. |
-| P08 | Settings + Continue budget + Pause | AWAITING | |
+| P07 | Goals / XP / streaks | **PASS** | Human 2026-09-21. Never Mind → XP/goals; Continues don't fake opens; window end updates; day filter OK. Weights: `docs/SCORING_WEIGHTS.md`. |
+| P08 | Settings + Continue budget + Pause | AWAITING HUMAN | Agent 2026-09-21: Settings tab; global budget; Pause confirm. Decisions: global budget, editable window, Pause yes. Build OK. |
 | P09 | Onboarding + notification honesty | AWAITING | |
 | P10 | Usage checkpoint optional | AWAITING | |
 | P11 | Dogfood / stress / all-day | AWAITING | |

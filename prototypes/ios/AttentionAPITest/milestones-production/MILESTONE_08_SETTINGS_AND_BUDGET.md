@@ -33,10 +33,10 @@ Open decisions from design plan to resolve here (record in `PRODUCTION_RESULTS.m
 
 ## Agent exit checks
 
-- [ ] Build succeeds
-- [ ] Window length change affects next Continue window
-- [ ] Pause clears shields in code
-- [ ] Continue still available at L2 when budget is 0
+- [x] Build succeeds
+- [x] Window length change affects next Continue window (Settings applies to preferred + all tracked apps + rearm)
+- [x] Pause clears shields in code
+- [x] Continue still available at L2 when budget is 0 (no hard lock)
 
 ## Physical-device checklist (human)
 

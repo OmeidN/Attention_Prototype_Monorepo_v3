@@ -12,16 +12,17 @@ struct AttentionAPITestApp: App {
     @StateObject private var accessWindow = AccessWindowController.shared
     @StateObject private var todayStats = TodayStatsStore.shared
     @StateObject private var scoring = ScoringStore.shared
+    @StateObject private var settings = AttentionSettingsStore.shared
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
-        // Production defaults for P05A — hard threshold closer (set-and-forget; may yank).
+        // Production defaults for P05B — wall-only closer (set-and-forget; may yank).
         ReshieldPolicy.setMode(.onThreshold)
         ReshieldPolicy.setUnsafeInterrupt(true)
         AccessWindowBridge.setHonestUnit("access_window")
         AccessWindowController.shared.setReshieldMode(.onThreshold)
         AccessWindowController.shared.setUnsafeInterrupt(true)
-        ReshieldPolicy.setAcceptableModeNote("on_threshold hard_yank set-and-forget")
+        ReshieldPolicy.setAcceptableModeNote("on_threshold wall-only set-and-forget")
 
         TestLogger.shared.log(
             "ATTN-P00",
@@ -44,8 +45,8 @@ struct AttentionAPITestApp: App {
             "policy reshield_mode=\(ReshieldPolicy.mode().rawValue) unsafe_interrupt=\(ReshieldPolicy.unsafeInterrupt()) preferred_duration_s=\(AccessWindowBridge.preferredDurationSeconds()) unit=access_window"
         )
         TestLogger.shared.log(
-            "ATTN-P05A",
-            "hard_closer=on_threshold may_yank=true \(HardWindowMonitor.statusLine())"
+            "ATTN-P05B",
+            "hard_closer=wall_only may_yank=true \(HardWindowMonitor.statusLine())"
         )
         let rolled = InterventionState.ensureToday()
         if rolled {
@@ -58,6 +59,10 @@ struct AttentionAPITestApp: App {
         _ = TodayStatsStore.shared.ingest(reason: "app_launch")
         TestLogger.shared.log("ATTN-P06", "today_home_ready events_today=\(TodayEventLog.events(on: Date()).count)")
         TestLogger.shared.log("ATTN-P07", "scoring_ready \(ScoringRules.weightsDescription()) total_xp=\(ScoringStore.shared.totalXP) streak=\(ScoringStore.shared.streak)")
+        TestLogger.shared.log(
+            "ATTN-P08",
+            "settings_ready budget=\(AttentionSettingsStore.shared.continueBudget) window_s=\(AttentionSettingsStore.shared.defaultWindowSeconds) paused=\(AttentionSettingsStore.shared.attentionPaused)"
+        )
         productShellLogger.log("app_launched")
     }
 
@@ -70,6 +75,7 @@ struct AttentionAPITestApp: App {
                 .environmentObject(accessWindow)
                 .environmentObject(todayStats)
                 .environmentObject(scoring)
+                .environmentObject(settings)
         }
         .onChange(of: scenePhase) { _, newPhase in
             let name: String

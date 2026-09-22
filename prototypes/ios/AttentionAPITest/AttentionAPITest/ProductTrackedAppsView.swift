@@ -36,25 +36,24 @@ struct ProductTrackedAppsView: View {
                     row("Auth", FamilyControlsAuth.statusLabel)
                 }
 
-                Section("P05B — Hybrid closer (usage + wall)") {
+                Section("P05B — Wall-clock closer") {
                     Text(HardWindowMonitor.mappingDescription())
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text("Examples: 15s debug → 60s wall; 1→2 min; 5→6 min. After Continue, Monitor must show wall_arm_ok code=pad15m_v2 (span_m=15). Old intervalTooShort lines without code= are stale — reinstall + Continue again. Leave early → wait until_end_s (~1–2 min on 15s debug).")
+                    Text("Expect: 15s or 1 min Settings → wall ~60s (often ~1–2 min on device, minute snap). last_close=wall_clock. In-app usage OFF.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    row("Closer", "hybrid · may yank on usage · wall closes if you leave")
+                    row("Closer", "wall-only · may yank when wall ends")
                     row("Monitor / wall", HardWindowMonitor.statusLine())
                     Text(DeviceActivityBridge.statusSummary())
                         .font(.system(.caption2, design: .monospaced))
                         .textSelection(.enabled)
-                    Button("Re-arm usage thresholds now") {
+                    Button("Stop legacy usage monitor (noop if already off)") {
                         ReshieldPolicy.setMode(.onThreshold)
-                        let err = HardWindowMonitor.rearm(apps: trackedApps.apps, reason: "manual_rearm")
-                        logger.log("ATTN-P05B", "manual_rearm \(err.map { "error=\($0)" } ?? "ok")")
-                        statusMessage = err.map { "Rearm failed: \($0)" } ?? "Thresholds re-armed for \(trackedApps.apps.count) app(s)."
+                        _ = HardWindowMonitor.rearm(apps: [], reason: "manual_stop_usage")
+                        logger.log("ATTN-P05B", "manual_stop_usage ok")
+                        statusMessage = "Usage monitor stopped. Wall arms on Continue only."
                     }
-                    .disabled(trackedApps.apps.isEmpty)
                 }
 
                 Section("P05 — Friction ladder") {
@@ -98,21 +97,13 @@ struct ProductTrackedAppsView: View {
                     }
                 }
 
-                Section("P04 — Access window") {
-                    Text("Continue starts a timed access_window. Re-shield at window end (no mid-scroll yank). If Attention is quit/background at end, re-shield defers until Attention is active again.")
+                Section("P04 — Access window (status)") {
+                    Text("Default window length lives in Settings (P08). Per-app override is on each tracked app row. Host on_window_end remains secondary to hard threshold.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     row("Policy", "on_threshold (hard) · host on_window_end is secondary")
                     row("Unit", "access_window / usage duration (not open / not session_end)")
-
-                    Picker("Window length", selection: Binding(
-                        get: { accessWindow.durationSeconds },
-                        set: { accessWindow.setDurationSeconds($0) }
-                    )) {
-                        ForEach(AccessWindowBridge.durationChoices, id: \.seconds) { choice in
-                            Text(choice.label).tag(choice.seconds)
-                        }
-                    }
+                    row("Preferred (Settings)", "\(AccessWindowBridge.preferredDurationSeconds())s")
 
                     Text(accessWindow.statusText)
                         .font(.system(.caption2, design: .monospaced))
@@ -160,14 +151,14 @@ struct ProductTrackedAppsView: View {
                         // Drop any prior Continue wall so a leftover intervalDidEnd doesn't
                         // immediately re-block after the next Continue.
                         HardWindowMonitor.clearWallPending(reason: "shield_all")
-                        let err = HardWindowMonitor.rearm(apps: trackedApps.apps, reason: "shield_all")
+                        _ = HardWindowMonitor.rearm(apps: [], reason: "shield_all")
                         logger.log(
-                            "ATTN-P05A",
-                            "shield_all_rearm \(err.map { "error=\($0)" } ?? "ok") \(HardWindowMonitor.statusLine())"
+                            "ATTN-P05B",
+                            "shield_all wall_only \(HardWindowMonitor.statusLine())"
                         )
                         statusMessage = trackedApps.apps.isEmpty
                             ? "No tracked apps to shield."
-                            : "Shield applied. Hard closer armed (usage threshold / may yank). Force-quit Attention OK."
+                            : "Shield applied. Wall closer arms on Continue (~window length). Force-quit Attention OK."
                     }
                     .disabled(!authApproved || trackedApps.apps.isEmpty)
 
@@ -348,7 +339,7 @@ struct ProductTrackedAppsView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
-                Text("Window ≈ \(Self.formatDuration(app.windowDurationSeconds)) use / \(Self.formatDuration(HardWindowMonitor.wallClockSeconds(forUsageWindowSeconds: app.windowDurationSeconds))) wall")
+                Text("Window ≈ UI \(Self.formatDuration(app.windowDurationSeconds)) / wall \(Self.formatDuration(HardWindowMonitor.wallClockSeconds(forUsageWindowSeconds: app.windowDurationSeconds))) (usage OFF)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

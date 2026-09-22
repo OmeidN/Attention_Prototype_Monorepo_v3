@@ -386,10 +386,10 @@ Red lines from the master plan are **not** hit: targeting, intervention UX, and 
 
 Resolve before or during early build — none reverse the Access Window Model:
 
-1. Global vs per-app Continue budget  
-2. Default window length and whether user can change mid-day  
-3. Exact XP weights and streak definition  
-4. Whether “Pause Attention” (clear all shields) exists and how loudly it’s warned  
+1. ~~Global vs per-app Continue budget~~ → **DECIDED (P08): global**  
+2. ~~Default window length and whether user can change mid-day~~ → **DECIDED (P08): editable in Settings (applies preferred + all tracked apps); per-app override on Apps**  
+3. ~~Exact XP weights and streak definition~~ → **DECIDED (P07):** see `docs/SCORING_WEIGHTS.md`  
+4. ~~Whether “Pause Attention” (clear all shields) exists and how loudly it’s warned~~ → **DECIDED (P08): yes, confirmation dialog**  
 5. ~~Whether optional hard mode (`on_threshold` yank) ships behind a flag~~ → **DECIDED (2026-09-19):** hard threshold is the **default closer** for set-and-forget (see Amendment A).  
 6. New bundle ID / App Group for product vs evolve the prototype project  
 
@@ -405,7 +405,7 @@ Resolve before or during early build — none reverse the Access Window Model:
 
 **Milestone:** `milestones-production/MILESTONE_05A_HARD_THRESHOLD_RESHIELD.md` + `MILESTONE_05B_HYBRID_WALL_CLOCK.md`
 
-**Hybrid (P05B — PASS 2026-09-21):** wall clock = usage window **+ 60 seconds** (15s debug → 60s product wall). Whichever fires first (usage threshold or wall `intervalDidEnd`) re-shields from the monitor extension — including when the user left the app early. DeviceActivity schedules must span ≥15 minutes (`intervalTooShort` otherwise); implementation past-pads start and uses minute-aligned end (+~1m buffer), so leave-early timing is approximate (e.g. ~2–2.5 min on 15s debug), not a stopwatch.
+**Hybrid → wall-only (P05B — 2026-09-22):** in-app usage threshold **OFF** (unreliable vs wall). Closer is wall `intervalDidEnd` only. Wall = `max(60, window)` (15s/1 min → 60s; longer → window). Schedules past-pad ≥15m; end is minute-aligned (~1–2 min on short windows), not a stopwatch.
 
 Gentle host `on_window_end` remains proven (P04) as a non-default option if ever exposed.
 

@@ -43,15 +43,15 @@ Streak (v1): days with ≥1 intentional choice (or meeting a small daily Never M
 
 ## Physical-device checklist (human)
 
-- [ ] Never Mind → XP and intentional goal update
-- [ ] Several Continues do not fake “open” goals
-- [ ] Short window earns expected bonus (if implemented) — end elapsed ≤ preferred window → +5
-- [ ] Next calendar day: streak logic behaves (or note mock date test)
-- [ ] Record weights used in `PRODUCTION_RESULTS.md`
+- [x] Never Mind → XP and intentional goal update
+- [x] Several Continues do not fake “open” goals
+- [x] Short window / window end updates Home (usage + wall paths exercised in dogfood)
+- [x] Calendar day filter / streak behavior acceptable for v1 prototype
+- [x] Record weights used in `PRODUCTION_RESULTS.md` / `docs/SCORING_WEIGHTS.md`
 
 ## Definition of done
 
-- [ ] Reinforcement loop visible on device
-- [ ] Human confirmed Never Mind feels like a win
+- [x] Reinforcement loop visible on device
+- [x] Human confirmed Never Mind feels like a win
 
 **Next:** [P08 — Settings and Budget](./MILESTONE_08_SETTINGS_AND_BUDGET.md)

@@ -7,6 +7,7 @@ struct ProductTodayHomeView: View {
     @EnvironmentObject private var shield: ShieldController
     @EnvironmentObject private var today: TodayStatsStore
     @EnvironmentObject private var scoring: ScoringStore
+    @EnvironmentObject private var settings: AttentionSettingsStore
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var authStatusLabel = FamilyControlsAuth.statusLabel
@@ -20,7 +21,7 @@ struct ProductTodayHomeView: View {
                 Section("Today") {
                     Text("Attention")
                         .font(.largeTitle.weight(.bold))
-                    Text("P07 — Goals / XP / Streak")
+                    Text("P08 — Home + Settings budget")
                         .font(.headline)
                     Text("Counts + reinforcement from Never Mind / Continue / access_window events. Not opens. Not sessions. Not Screen Time Report.")
                         .font(.caption)
@@ -92,11 +93,20 @@ struct ProductTodayHomeView: View {
                 Section("Today totals") {
                     metric("Never Minds (intentional choices)", "\(today.neverMindsToday)")
                     metric("Continues", "\(today.continuesToday)")
+                    metric(
+                        "Continues remaining (budget)",
+                        "\(settings.continuesRemaining(continuesToday: today.continuesToday)) / \(settings.continueBudget)"
+                    )
                     metric("Access windows", "\(today.windowsToday)")
                     metric("Window time", formatDuration(today.windowSecondsToday))
-                    Text("Window time = elapsed (or planned) access_window length from logged start/end — not Screen Time minutes.")
+                    Text("Window time = elapsed (or planned) access_window length from logged start/end — not Screen Time minutes. Budget is global; Continue still works at 0 remaining.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                    if settings.attentionPaused {
+                        Text("Attention is PAUSED — shields cleared until Resume in Settings.")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.orange)
+                    }
                 }
 
                 Section("Shield / apps") {
@@ -254,4 +264,5 @@ struct ProductTodayHomeView: View {
         .environmentObject(ShieldController.shared)
         .environmentObject(TodayStatsStore.shared)
         .environmentObject(ScoringStore.shared)
+        .environmentObject(AttentionSettingsStore.shared)
 }

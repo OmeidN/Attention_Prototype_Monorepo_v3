@@ -9,6 +9,9 @@ struct RootView: View {
 
             ProductTrackedAppsView()
                 .tabItem { Label("Apps", systemImage: "app.badge") }
+
+            ProductSettingsView()
+                .tabItem { Label("Settings", systemImage: "gearshape") }
         }
     }
 }
@@ -21,4 +24,5 @@ struct RootView: View {
         .environmentObject(AccessWindowController.shared)
         .environmentObject(TodayStatsStore.shared)
         .environmentObject(ScoringStore.shared)
+        .environmentObject(AttentionSettingsStore.shared)
 }

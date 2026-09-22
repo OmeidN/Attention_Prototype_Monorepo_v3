@@ -4,14 +4,20 @@ Last updated: 2026-09-21
 
 | Item | Value |
 |---|---|
-| Current | **P07 — Goals / XP / Streaks** |
+| Current | **P08 — Settings and Budget** |
 | Status | **BUILT — awaiting device confirmation** |
-| Prior | **P06 PASS** (Today home + day filter confirmed) |
+| Prior | **P07 PASS** |
 
-## P07
+## P08
 
-Home shows Total XP, XP today, Never Mind streak, 4 daily goals. Scoring recomputes from `TodayEventLog` on ingest. Weights: `docs/SCORING_WEIGHTS.md`.
+Settings tab: default window (applies to all tracked apps), global Continue budget, Pause Attention (confirm). Home shows Continues remaining. Budget does not lock Continue.
 
-## TEMP (remove later)
+## Decisions recorded
 
-Debug resets for testing: `docs/TEMP_DEBUG_RESETS.md` — per-app + wipe-all on Apps tab. Not for v1 ship.
+- Continue budget: **global**
+- Window default: **editable mid-day** from Settings
+- Pause Attention: **yes**, with confirmation
+
+## Next
+
+Human device checklist for P08, then P09.

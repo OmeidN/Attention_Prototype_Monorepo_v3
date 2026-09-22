@@ -2,7 +2,7 @@ import DeviceActivity
 import Foundation
 import ManagedSettings
 
-/// Usage threshold (P05A) + wall-clock interval end (P05B) hard re-shield without Attention host.
+/// Wall-clock interval end (P05B) hard re-shield without Attention host. Usage threshold closer is off.
 final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)

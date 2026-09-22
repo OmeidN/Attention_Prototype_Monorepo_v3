@@ -2,7 +2,7 @@ import ManagedSettings
 import DeviceActivity
 import Foundation
 
-/// P05A: Never Mind / Continue. Continue arms hard usage-threshold re-shield (works if Attention is dead).
+/// P05B: Never Mind / Continue. Continue arms wall-clock re-shield only (works if Attention is dead).
 final class ShieldActionExtension: ShieldActionDelegate {
     private let store = ManagedSettingsStore()
 
@@ -28,7 +28,7 @@ final class ShieldActionExtension: ShieldActionDelegate {
                 forKey: "attention.m11.last_continue_transition"
             )
 
-            // Set-and-forget hybrid: usage threshold + wall-clock (window+60s).
+            // Wall-only closer (usage threshold off).
             ReshieldPolicy.setMode(.onThreshold)
             let apps = Self.loadTrackedApps()
             let matched = apps.first(where: { $0.id == event.trackedAppId })
@@ -42,7 +42,7 @@ final class ShieldActionExtension: ShieldActionDelegate {
                 durationSeconds: duration
             )
 
-            let armError = HardWindowMonitor.rearm(apps: apps, reason: "continue")
+            _ = HardWindowMonitor.rearm(apps: [], reason: "continue")
             var wallNote = "wall_skipped"
             if let matched {
                 if let wallErr = HardWindowMonitor.armWallClock(for: matched, reason: "continue") {
@@ -52,9 +52,8 @@ final class ShieldActionExtension: ShieldActionDelegate {
                     wallNote = "wall_ok=\(wall)s"
                 }
             }
-            let armNote = armError.map { "arm_error=\($0)" } ?? "arm_ok"
             ShieldActionBridge.writeExtensionNote(
-                "ATTN-P05B continue+hybrid label=\(event.userLabel ?? "NO_LABEL") id=\(event.trackedAppId?.uuidString ?? "nil") usage_s=\(duration) \(armNote) \(wallNote)"
+                "ATTN-P05B continue+wall_only label=\(event.userLabel ?? "NO_LABEL") id=\(event.trackedAppId?.uuidString ?? "nil") window_s=\(duration) \(wallNote)"
             )
             completionHandler(.close)
 
