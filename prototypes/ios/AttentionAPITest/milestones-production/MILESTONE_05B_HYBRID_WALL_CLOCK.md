@@ -24,8 +24,8 @@
 
 ## Device notes (2026-09-22)
 
-- Arm code `wall_only_v1`; product wall `max(60, window)`.
-- Near local midnight: clamp start to start-of-today; reject far `nextInterval`.
+- Arm code `wall_multi_v1`; product wall `max(60, window)`; **per-app** DeviceActivity names so Continue on A does not cancel B.
 - Usage closer OFF (`usageCloserEnabled=false`); leftover usage callbacks ignored.
+- Expected: Shield both → Continue A → A unblocked with its wall; B stays shielded until Continue B (own wall).
 
 **Next:** P06 Today Home (already shipped) / continue P08+ dogfood

@@ -154,13 +154,20 @@ enum ReshieldPolicy {
         return ok
     }
 
-    /// Wall-clock interval ended — re-shield pending Continue app even if user already left it.
-    static func tryWallReshieldFromMonitorExtension() -> Bool {
+    /// Wall-clock interval ended — re-shield that Continued app only (other walls keep running).
+    static func tryWallReshieldFromMonitorExtension(activityRaw: String? = nil) -> Bool {
         guard mode() == .onThreshold else { return false }
-        guard let pendingID = HardWindowMonitor.pendingWallAppID() else { return false }
+
+        let appID: UUID?
+        if let activityRaw, let parsed = HardWindowMonitor.appID(fromWallActivityRaw: activityRaw) {
+            appID = parsed
+        } else {
+            appID = HardWindowMonitor.pendingWallAppID()
+        }
+        guard let appID else { return false }
         guard let data = suite?.data(forKey: ShieldCopySettings.trackedAppsKey),
               let apps = try? JSONDecoder().decode([TrackedApp].self, from: data),
-              let match = apps.first(where: { $0.id == pendingID })
+              let match = apps.first(where: { $0.id == appID })
         else { return false }
 
         return applyHardReshield(targets: [match], reason: "wall_clock")
@@ -174,7 +181,31 @@ enum ReshieldPolicy {
         }
         store.shield.applications = applications
         suite?.set(true, forKey: "attention.m04.last_shield_write_active")
-        recordApplied(mode: .onThreshold, reason: "monitor_extension_\(reason)", fromExtension: true)
+
+        // Per-app window end metrics when wall closes one Continue (don't clobber other apps' pending).
+        if reason == "wall_clock", let app = targets.first,
+           let pending = HardWindowMonitor.pendingWall(forAppID: app.id) {
+            AccessWindowBridge.markReshielded(
+                mechanism: "m10_on_threshold_monitor_extension_wall_clock",
+                trackedAppId: app.id,
+                userLabel: app.userLabel,
+                startedAtISO: pending.continuedAt
+            )
+            suite?.set(ReshieldMode.onThreshold.rawValue, forKey: lastModeKey)
+            suite?.set("monitor_extension_wall_clock", forKey: lastReasonKey)
+            suite?.set(ISO8601DateFormatter().string(from: Date()), forKey: lastAppliedAtKey)
+            suite?.set(true, forKey: extensionAppliedKey)
+            clearPendingThreshold()
+            HardWindowMonitor.clearWallPending(reason: "after_wall_clock", appID: app.id)
+        } else {
+            recordApplied(mode: .onThreshold, reason: "monitor_extension_\(reason)", fromExtension: true)
+            if let app = targets.first {
+                HardWindowMonitor.clearWallPending(reason: "after_\(reason)", appID: app.id)
+            } else {
+                HardWindowMonitor.clearWallPending(reason: "after_\(reason)")
+            }
+        }
+
         suite?.set(
             "ATTN-P05B hard_reshield reason=\(reason) labels=[\(targets.map(\.userLabel).joined(separator: ","))] — wall-only closer not opens",
             forKey: "attention.p05a.last_hard_reshield_note"
@@ -183,8 +214,6 @@ enum ReshieldPolicy {
             "\(reason) labels=[\(targets.map(\.userLabel).joined(separator: ","))] at=\(ISO8601DateFormatter().string(from: Date()))",
             forKey: HardWindowMonitor.lastHybridCloseKey
         )
-        // Stop wall timer if usage won (or clear after wall fired).
-        HardWindowMonitor.clearWallPending(reason: "after_\(reason)")
         return true
     }
 }

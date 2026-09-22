@@ -72,17 +72,23 @@ enum AccessWindowBridge {
         suite?.set(true, forKey: pendingReshieldKey)
     }
 
-    static func markReshielded(mechanism: String) {
+    static func markReshielded(
+        mechanism: String,
+        trackedAppId: UUID? = nil,
+        userLabel: String? = nil,
+        startedAtISO: String? = nil
+    ) {
         let end = Date()
         var elapsed: Int?
-        if let startRaw = suite?.string(forKey: startedAtKey),
+        let startRaw = startedAtISO ?? suite?.string(forKey: startedAtKey)
+        if let startRaw,
            let start = ISO8601DateFormatter().date(from: startRaw) {
             elapsed = max(0, Int(end.timeIntervalSince(start)))
         } else if let planned = suite?.object(forKey: durationKey) as? Int {
             elapsed = planned
         }
-        let id = trackedId()
-        let lbl = label()
+        let id = trackedAppId ?? trackedId()
+        let lbl = userLabel ?? label()
 
         suite?.set(false, forKey: activeKey)
         suite?.set(false, forKey: pendingReshieldKey)

@@ -3,13 +3,14 @@ import Foundation
 import ManagedSettings
 
 /// Wall-clock interval end (P05B) hard re-shield without Attention host. Usage threshold closer is off.
+/// Supports per-app wall activity names (`attention.p05b.wall.<uuid>`).
 final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
         DeviceActivityBridge.recordIntervalStart(activity: activity.rawValue)
-        if activity.rawValue == HardWindowMonitor.wallActivityRaw {
+        if HardWindowMonitor.isWallActivity(activity.rawValue) {
             HardWindowMonitor.suite?.set(
-                "wall_interval_started at=\(ISO8601DateFormatter().string(from: Date()))",
+                "wall_interval_started activity=\(activity.rawValue) at=\(ISO8601DateFormatter().string(from: Date()))",
                 forKey: HardWindowMonitor.wallArmSummaryKey
             )
         }
@@ -19,15 +20,15 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         super.intervalDidEnd(for: activity)
         DeviceActivityBridge.recordIntervalEnd(activity: activity.rawValue)
 
-        if activity.rawValue == HardWindowMonitor.wallActivityRaw {
+        if HardWindowMonitor.isWallActivity(activity.rawValue) {
             HardWindowMonitor.suite?.set(
-                "wall_interval_ended at=\(ISO8601DateFormatter().string(from: Date()))",
+                "wall_interval_ended activity=\(activity.rawValue) at=\(ISO8601DateFormatter().string(from: Date()))",
                 forKey: HardWindowMonitor.wallArmSummaryKey
             )
-            let applied = ReshieldPolicy.tryWallReshieldFromMonitorExtension()
+            let applied = ReshieldPolicy.tryWallReshieldFromMonitorExtension(activityRaw: activity.rawValue)
             if !applied {
                 HardWindowMonitor.suite?.set(
-                    "wall_interval_end pending_reshield_failed at=\(ISO8601DateFormatter().string(from: Date()))",
+                    "wall_interval_end pending_reshield_failed activity=\(activity.rawValue) at=\(ISO8601DateFormatter().string(from: Date()))",
                     forKey: HardWindowMonitor.wallArmSummaryKey
                 )
             }

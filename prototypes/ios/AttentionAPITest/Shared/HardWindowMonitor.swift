@@ -26,12 +26,23 @@ enum HardWindowMonitor {
     /// In-app DeviceActivity usage closer disabled — wall-only after Continue.
     static let usageCloserEnabled = false
 
+    /// Legacy single-pending keys (kept for status / migration).
     static let wallPendingIdKey = "attention.p05b.wall_pending_app_id"
     static let wallPendingLabelKey = "attention.p05b.wall_pending_label"
     static let wallEndAtKey = "attention.p05b.wall_end_at"
     static let wallSecondsKey = "attention.p05b.wall_seconds"
     static let wallArmSummaryKey = "attention.p05b.wall_arm_summary"
     static let lastHybridCloseKey = "attention.p05b.last_hybrid_close"
+    /// JSON map appUUID → PendingWall (per-app independent timers).
+    static let wallPendingMapKey = "attention.p05b.wall_pending_map_v1"
+
+    struct PendingWall: Codable {
+        var appID: String
+        var label: String
+        var wallSeconds: Int
+        var endAt: String
+        var continuedAt: String
+    }
 
     static var suite: UserDefaults? { ShieldCopySettings.suite }
 
@@ -49,11 +60,29 @@ enum HardWindowMonitor {
     /// Apple: DeviceActivity schedule interval must be ≥ 15 minutes or startMonitoring throws intervalTooShort.
     static let deviceActivityMinIntervalSeconds = 15 * 60
 
-    /// Bumped when wall-arm algorithm / closer mode changes — must appear in `wall_arm_ok` after install.
-    static let wallArmCode = "wall_only_v1"
+    /// Per-app wall activities so Continue on A does not cancel B's timer.
+    static let wallActivityPrefix = "attention.p05b.wall."
+    static let wallArmCode = "wall_multi_v1"
+
+    static func wallActivityName(forAppID id: UUID) -> DeviceActivityName {
+        DeviceActivityName("\(wallActivityPrefix)\(id.uuidString)")
+    }
+
+    static func appID(fromWallActivityRaw raw: String) -> UUID? {
+        guard raw.hasPrefix(wallActivityPrefix) else {
+            // Legacy single activity name — fall back to map / legacy key.
+            if raw == wallActivityRaw { return pendingWallAppID() }
+            return nil
+        }
+        return UUID(uuidString: String(raw.dropFirst(wallActivityPrefix.count)))
+    }
+
+    static func isWallActivity(_ raw: String) -> Bool {
+        raw.hasPrefix(wallActivityPrefix) || raw == wallActivityRaw
+    }
 
     static func mappingDescription() -> String {
-        "wall-only closer: 15s/1min UI → ~60s wall (minute snap ≈1–2 min); longer windows → wall≈window. Usage threshold OFF."
+        "wall-only closer (per-app timers): 15s/1min → ~60s wall; longer → wall≈window. Continue one app leaves others shielded until their own Continue."
     }
 
     static func dateComponents(forSeconds seconds: Int) -> DateComponents {
@@ -128,7 +157,7 @@ enum HardWindowMonitor {
         return msg
     }
 
-    /// One-shot wall-clock schedule for the Continued app (closes even if user left the app).
+    /// One-shot wall-clock schedule for one Continued app (independent of other apps' walls).
     ///
     /// Apple requires schedule span ≥ 15 minutes (`intervalTooShort` otherwise). For shorter
     /// product walls we pad `intervalStart` into the past so `intervalDidEnd` still lands near
@@ -140,6 +169,10 @@ enum HardWindowMonitor {
     @discardableResult
     static func armWallClock(for app: TrackedApp, reason: String) -> String? {
         let center = DeviceActivityCenter()
+        let activity = wallActivityName(forAppID: app.id)
+        // Only stop this app's prior wall — leave other apps' timers running.
+        center.stopMonitoring([activity])
+        // Also stop legacy single-name monitor if still around.
         center.stopMonitoring([wallActivityName])
 
         let usage = max(15, app.windowDurationSeconds)
@@ -147,11 +180,11 @@ enum HardWindowMonitor {
         let calendar = Calendar.current
         let now = Date()
         let dayStart = calendar.startOfDay(for: now)
+        let iso = ISO8601DateFormatter()
 
-        // End ≈ now + wallSecs, snapped up to a whole minute (DeviceActivity is minute-granular).
         let endTarget = now.addingTimeInterval(TimeInterval(wallSecs))
         guard var endDate = calendar.date(bySetting: .second, value: 0, of: endTarget) else {
-            let msg = "wall_arm_failed reason=\(reason) error=date_math code=\(wallArmCode)"
+            let msg = "wall_arm_failed reason=\(reason) error=date_math code=\(wallArmCode) label=\(app.userLabel)"
             suite?.set(msg, forKey: wallArmSummaryKey)
             return "date_math"
         }
@@ -161,7 +194,6 @@ enum HardWindowMonitor {
 
         var startDate = endDate.addingTimeInterval(-TimeInterval(deviceActivityMinIntervalSeconds))
         if startDate < dayStart {
-            // Past-pad would cross midnight — keep interval on today only.
             startDate = dayStart
             let minEnd = dayStart.addingTimeInterval(TimeInterval(deviceActivityMinIntervalSeconds))
             if endDate < minEnd {
@@ -169,7 +201,6 @@ enum HardWindowMonitor {
             }
         }
 
-        // If end would spill into tomorrow, clamp to today 23:59 and keep ≥15m span.
         if !calendar.isDate(endDate, inSameDayAs: now) {
             endDate = calendar.date(bySettingHour: 23, minute: 59, second: 0, of: now) ?? endDate
             startDate = endDate.addingTimeInterval(-TimeInterval(deviceActivityMinIntervalSeconds))
@@ -198,11 +229,10 @@ enum HardWindowMonitor {
         if let next {
             let nextSpan = Int(next.end.timeIntervalSince(next.start))
             let nextUntil = Int(next.end.timeIntervalSince(now))
-            nextDesc = "next=\(ISO8601DateFormatter().string(from: next.start))→\(ISO8601DateFormatter().string(from: next.end)) next_span_s=\(nextSpan) next_until_s=\(nextUntil)"
-            // Refuse absurd schedules (e.g. next fire ~24h).
+            nextDesc = "next=\(iso.string(from: next.start))→\(iso.string(from: next.end)) next_span_s=\(nextSpan) next_until_s=\(nextUntil)"
             if nextUntil > wallSecs + 20 * 60 {
                 let err = "wall_arm_rejected_far_next next_until_s=\(nextUntil) wall_s=\(wallSecs)"
-                suite?.set("\(err) code=\(wallArmCode) reason=\(reason) \(nextDesc)", forKey: wallArmSummaryKey)
+                suite?.set("\(err) code=\(wallArmCode) reason=\(reason) label=\(app.userLabel) \(nextDesc)", forKey: wallArmSummaryKey)
                 return err
             }
         } else {
@@ -211,37 +241,102 @@ enum HardWindowMonitor {
 
         if untilEndS > wallSecs + 20 * 60 {
             let err = "wall_arm_rejected_far_end until_end_s=\(untilEndS) wall_s=\(wallSecs)"
-            suite?.set("\(err) code=\(wallArmCode) reason=\(reason) \(nextDesc)", forKey: wallArmSummaryKey)
+            suite?.set("\(err) code=\(wallArmCode) reason=\(reason) label=\(app.userLabel) \(nextDesc)", forKey: wallArmSummaryKey)
             return err
         }
 
         let padPastS = max(0, Int(now.timeIntervalSince(startDate)))
+        let continuedAt = iso.string(from: now)
+        let endAt = iso.string(from: endDate)
+        var map = loadPendingMap()
+        map[app.id.uuidString] = PendingWall(
+            appID: app.id.uuidString,
+            label: app.userLabel,
+            wallSeconds: wallSecs,
+            endAt: endAt,
+            continuedAt: continuedAt
+        )
+        savePendingMap(map)
+        // Legacy mirrors (last armed app) for older status readers.
         suite?.set(app.id.uuidString, forKey: wallPendingIdKey)
         suite?.set(app.userLabel, forKey: wallPendingLabelKey)
         suite?.set(wallSecs, forKey: wallSecondsKey)
-        suite?.set(ISO8601DateFormatter().string(from: endDate), forKey: wallEndAtKey)
+        suite?.set(endAt, forKey: wallEndAtKey)
+        suite?.set(continuedAt, forKey: continueSessionAtKey)
 
         do {
-            try center.startMonitoring(wallActivityName, during: schedule, events: [:])
-            let summary = "wall_arm_ok code=\(wallArmCode) reason=\(reason) label=\(app.userLabel) usage_s=\(usage) wall_s=\(wallSecs) span_m=\(spanMinutes) pad_past_s=\(padPastS) until_end_s=\(untilEndS) end=\(suite?.string(forKey: wallEndAtKey) ?? "?") \(nextDesc)"
+            try center.startMonitoring(activity, during: schedule, events: [:])
+            let pendingLabels = map.values.map(\.label).sorted().joined(separator: ",")
+            let summary = "wall_arm_ok code=\(wallArmCode) reason=\(reason) label=\(app.userLabel) usage_s=\(usage) wall_s=\(wallSecs) span_m=\(spanMinutes) pad_past_s=\(padPastS) until_end_s=\(untilEndS) end=\(endAt) pending=[\(pendingLabels)] \(nextDesc)"
             suite?.set(summary, forKey: wallArmSummaryKey)
             return next == nil ? "wall_armed_but_nextInterval_nil" : nil
         } catch {
             let err = String(describing: error)
-            suite?.set("wall_arm_failed code=\(wallArmCode) reason=\(reason) error=\(err) wall_s=\(wallSecs) span_m=\(spanMinutes) \(nextDesc)", forKey: wallArmSummaryKey)
+            map.removeValue(forKey: app.id.uuidString)
+            savePendingMap(map)
+            suite?.set("wall_arm_failed code=\(wallArmCode) reason=\(reason) label=\(app.userLabel) error=\(err) wall_s=\(wallSecs) span_m=\(spanMinutes) \(nextDesc)", forKey: wallArmSummaryKey)
             return err
         }
     }
 
-    static func clearWallPending(reason: String) {
-        suite?.removeObject(forKey: wallPendingIdKey)
-        suite?.removeObject(forKey: wallPendingLabelKey)
+    static func loadPendingMap() -> [String: PendingWall] {
+        guard let data = suite?.data(forKey: wallPendingMapKey),
+              let decoded = try? JSONDecoder().decode([String: PendingWall].self, from: data)
+        else { return [:] }
+        return decoded
+    }
+
+    static func savePendingMap(_ map: [String: PendingWall]) {
+        if map.isEmpty {
+            suite?.removeObject(forKey: wallPendingMapKey)
+            return
+        }
+        if let data = try? JSONEncoder().encode(map) {
+            suite?.set(data, forKey: wallPendingMapKey)
+        }
+    }
+
+    static func pendingWall(forAppID id: UUID) -> PendingWall? {
+        loadPendingMap()[id.uuidString]
+    }
+
+    static func pendingWallAppIDs() -> Set<UUID> {
+        Set(loadPendingMap().keys.compactMap { UUID(uuidString: $0) })
+    }
+
+    /// Clear one app's wall, or all if `appID` is nil.
+    static func clearWallPending(reason: String, appID: UUID? = nil) {
         let center = DeviceActivityCenter()
-        center.stopMonitoring([wallActivityName])
-        suite?.set("wall_cleared reason=\(reason)", forKey: wallArmSummaryKey)
+        var map = loadPendingMap()
+        if let appID {
+            map.removeValue(forKey: appID.uuidString)
+            center.stopMonitoring([wallActivityName(forAppID: appID)])
+            suite?.set("wall_cleared reason=\(reason) label_id=\(appID.uuidString) remaining=\(map.count)", forKey: wallArmSummaryKey)
+        } else {
+            let names = map.keys.compactMap { UUID(uuidString: $0) }.map { wallActivityName(forAppID: $0) }
+            if !names.isEmpty {
+                center.stopMonitoring(names)
+            }
+            center.stopMonitoring([wallActivityName])
+            map.removeAll()
+            suite?.removeObject(forKey: wallPendingIdKey)
+            suite?.removeObject(forKey: wallPendingLabelKey)
+            suite?.set("wall_cleared reason=\(reason) all", forKey: wallArmSummaryKey)
+        }
+        savePendingMap(map)
+        if let last = map.values.sorted(by: { $0.continuedAt > $1.continuedAt }).first {
+            suite?.set(last.appID, forKey: wallPendingIdKey)
+            suite?.set(last.label, forKey: wallPendingLabelKey)
+            suite?.set(last.wallSeconds, forKey: wallSecondsKey)
+            suite?.set(last.endAt, forKey: wallEndAtKey)
+        } else {
+            suite?.removeObject(forKey: wallPendingIdKey)
+            suite?.removeObject(forKey: wallPendingLabelKey)
+        }
     }
 
     static func pendingWallAppID() -> UUID? {
+        if let id = pendingWallAppIDs().first { return id }
         guard let raw = suite?.string(forKey: wallPendingIdKey) else { return nil }
         return UUID(uuidString: raw)
     }
@@ -250,6 +345,8 @@ enum HardWindowMonitor {
         let summary = suite?.string(forKey: lastArmSummaryKey) ?? "never_armed"
         let wall = suite?.string(forKey: wallArmSummaryKey) ?? "wall_never"
         let close = suite?.string(forKey: lastHybridCloseKey) ?? "none"
-        return "\(summary) | \(wall) | last_close=\(close)"
+        let pending = loadPendingMap().values.map(\.label).sorted().joined(separator: ",")
+        let pendingNote = pending.isEmpty ? "pending=none" : "pending=[\(pending)]"
+        return "\(summary) | \(wall) | \(pendingNote) | last_close=\(close)"
     }
 }

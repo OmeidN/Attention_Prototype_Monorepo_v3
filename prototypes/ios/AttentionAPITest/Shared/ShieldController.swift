@@ -74,6 +74,7 @@ final class ShieldController: ObservableObject {
     }
 
     /// Keep ManagedSettings tokens aligned with the tracked list while shielding is active.
+    /// Does **not** re-block apps that currently have an open Continue wall pending.
     func syncWithTrackedApps(_ apps: [TrackedApp], reason: String) {
         guard lastWriteActive else { return }
         if apps.isEmpty {
@@ -81,8 +82,24 @@ final class ShieldController: ObservableObject {
             TestLogger.shared.log("ATTN-P02", "sync_cleared reason=\(reason) — no tracked apps")
             return
         }
-        shieldSelected(apps: apps, logTag: "ATTN-P02")
-        TestLogger.shared.log("ATTN-P02", "sync_reshield reason=\(reason) count=\(apps.count)")
+        let openIDs = HardWindowMonitor.pendingWallAppIDs()
+        if openIDs.isEmpty {
+            shieldSelected(apps: apps, logTag: "ATTN-P02")
+            TestLogger.shared.log("ATTN-P02", "sync_reshield reason=\(reason) count=\(apps.count)")
+            return
+        }
+        let toShield = apps.filter { !openIDs.contains($0.id) }
+        let tokens = Set(toShield.map(\.token))
+        store.shield.applications = tokens.isEmpty ? nil : tokens
+        lastWriteActive = true
+        lastWriteLabels = toShield.map(\.userLabel).joined(separator: ", ")
+        lastWriteAt = TestLogger.isoString(Date())
+        persistWriteState()
+        let skipped = apps.filter { openIDs.contains($0.id) }.map(\.userLabel).joined(separator: ",")
+        TestLogger.shared.log(
+            "ATTN-P02",
+            "sync_reshield_partial reason=\(reason) shielded=\(toShield.count) skipped_open=[\(skipped)]"
+        )
     }
 
     /// Clear "we think we are shielding" UI when auth is lost (M12). Does not crash.
