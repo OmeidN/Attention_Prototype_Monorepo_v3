@@ -20,6 +20,9 @@ enum HardWindowMonitor {
     static let lastPrematureIgnoreKey = "attention.p05a.last_premature_threshold_ignore"
     /// Set by tryReshieldFromMonitorExtension: premature | applied | no_targets | wrong_mode
     static let lastUsageThresholdDecisionKey = "attention.p05a.last_usage_threshold_decision"
+    /// How many times we re-armed after ignoring a premature fire (once-per-interval otherwise eats the real yank).
+    static let prematureRetryCountKey = "attention.p05a.premature_retry_count"
+    static let maxPrematureRetries = 2
 
     static let wallPendingIdKey = "attention.p05b.wall_pending_app_id"
     static let wallPendingLabelKey = "attention.p05b.wall_pending_label"
@@ -121,6 +124,9 @@ enum HardWindowMonitor {
             suite?.set(armAt, forKey: lastArmAtKey)
             suite?.set(armAt, forKey: lastUsageArmAtKey)
             suite?.set(minThreshold, forKey: lastUsageThresholdSecondsKey)
+            if reason == "continue" || reason == "shield_all" || reason.hasPrefix("temp_") {
+                suite?.set(0, forKey: prematureRetryCountKey)
+            }
             suite?.removeObject(forKey: lastArmErrorKey)
             return nil
         } catch {
@@ -134,21 +140,48 @@ enum HardWindowMonitor {
     }
 
     /// True when threshold fired too soon after arm (known DeviceActivity false positive).
-    /// Caller should not re-shield; wall-clock backup still closes the door.
+    /// Caller should not re-shield; should re-arm usage monitoring (once-per-interval) so a real yank can still fire.
+    /// Wall-clock backup still closes the door if usage never wins.
     static func shouldIgnorePrematureUsageThreshold() -> Bool {
         guard let raw = suite?.string(forKey: lastUsageArmAtKey),
               let armAt = ISO8601DateFormatter().date(from: raw)
         else { return false }
-        let threshold = suite?.object(forKey: lastUsageThresholdSecondsKey) as? Int ?? 15
-        // Allow a few seconds of slop under the configured window; anything sooner is bogus.
-        let grace = TimeInterval(max(8, min(threshold - 2, 45)))
+        // Only ignore near-immediate false fires. A wide grace (e.g. 13s on a 15s window) + Apple's
+        // once-per-interval rule ate the real yank and left only the ~1–2 min wall close.
+        let grace: TimeInterval = 3
         let elapsed = Date().timeIntervalSince(armAt)
         if elapsed < grace {
+            let threshold = suite?.object(forKey: lastUsageThresholdSecondsKey) as? Int ?? 15
             let note = "premature_threshold_ignored elapsed_s=\(Int(elapsed)) grace_s=\(Int(grace)) threshold_s=\(threshold) at=\(ISO8601DateFormatter().string(from: Date()))"
             suite?.set(note, forKey: lastPrematureIgnoreKey)
             return true
         }
         return false
+    }
+
+    /// After ignoring a premature fire, restart usage monitoring so threshold can fire again for real use.
+    /// Does not touch the wall schedule. Caps retries to avoid an immediate-fire loop.
+    @discardableResult
+    static func rearmAfterPrematureIgnore() -> String {
+        let retries = (suite?.object(forKey: prematureRetryCountKey) as? Int) ?? 0
+        guard retries < maxPrematureRetries else {
+            let msg = "premature_rearm_capped retries=\(retries) — relying on wall_clock"
+            suite?.set(msg, forKey: lastPrematureIgnoreKey)
+            return msg
+        }
+        guard let data = suite?.data(forKey: ShieldCopySettings.trackedAppsKey),
+              let apps = try? JSONDecoder().decode([TrackedApp].self, from: data),
+              !apps.isEmpty
+        else {
+            return "premature_rearm_no_apps"
+        }
+        suite?.set(retries + 1, forKey: prematureRetryCountKey)
+        if let err = rearm(apps: apps, reason: "premature_retry_\(retries + 1)") {
+            return "premature_rearm_failed error=\(err)"
+        }
+        let msg = "premature_rearm_ok retry=\(retries + 1)/\(maxPrematureRetries)"
+        suite?.set(msg, forKey: lastPrematureIgnoreKey)
+        return msg
     }
 
     /// One-shot wall-clock schedule for the Continued app (closes even if user left the app).

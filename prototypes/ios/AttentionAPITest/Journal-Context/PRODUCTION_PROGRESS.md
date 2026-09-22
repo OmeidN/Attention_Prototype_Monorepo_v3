@@ -4,14 +4,14 @@ Last updated: 2026-09-21
 
 | Item | Value |
 |---|---|
-| Current | **P06 — Today Home** |
+| Current | **P07 — Goals / XP / Streaks** |
 | Status | **BUILT — awaiting device confirmation** |
-| Prior | P05A + P05B PASS |
+| Prior | **P06 PASS** (Today home + day filter confirmed) |
 
-## P06
+## P07
 
-Home tab ingests App Group events → Never Minds, Continues, access windows, window time. Honest copy (not opens/sessions). Ingest on launch / scene active / Home appear.
+Home shows Total XP, XP today, Never Mind streak, 4 daily goals. Scoring recomputes from `TodayEventLog` on ingest. Weights: `docs/SCORING_WEIGHTS.md`.
 
-## Next
+## TEMP (remove later)
 
-Human confirms physical-device checklist, then P07.
+Debug resets for testing: `docs/TEMP_DEBUG_RESETS.md` — per-app + wipe-all on Apps tab. Not for v1 ship.

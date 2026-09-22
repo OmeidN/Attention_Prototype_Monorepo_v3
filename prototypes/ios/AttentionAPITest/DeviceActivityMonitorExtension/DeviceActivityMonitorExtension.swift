@@ -51,8 +51,9 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
             if !applied {
                 let decision = HardWindowMonitor.suite?.string(forKey: HardWindowMonitor.lastUsageThresholdDecisionKey) ?? ""
                 if decision == "premature" {
+                    let rearmNote = HardWindowMonitor.rearmAfterPrematureIgnore()
                     HardWindowMonitor.suite?.set(
-                        "usage_threshold_skipped_premature event=\(event.rawValue)",
+                        "usage_threshold_skipped_premature event=\(event.rawValue) \(rearmNote)",
                         forKey: "attention.p05a.last_hard_reshield_note"
                     )
                 } else {

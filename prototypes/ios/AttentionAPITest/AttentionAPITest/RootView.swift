@@ -20,4 +20,5 @@ struct RootView: View {
         .environmentObject(ShieldController.shared)
         .environmentObject(AccessWindowController.shared)
         .environmentObject(TodayStatsStore.shared)
+        .environmentObject(ScoringStore.shared)
 }

@@ -97,6 +97,13 @@ enum InterventionState {
         suite?.set(todayString(), forKey: dayKey)
     }
 
+    /// TEMP DEBUG (remove later): zero Continue / Never Mind counts for one tracked app today.
+    static func resetCounts(appID: UUID) {
+        ensureToday()
+        suite?.removeObject(forKey: continuePrefix + appID.uuidString)
+        suite?.removeObject(forKey: neverMindPrefix + appID.uuidString)
+    }
+
     static func setTrustNote(_ note: String) {
         suite?.set(note, forKey: trustNoteKey)
     }

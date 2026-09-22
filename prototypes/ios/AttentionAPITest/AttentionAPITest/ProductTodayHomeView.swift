@@ -6,6 +6,7 @@ struct ProductTodayHomeView: View {
     @EnvironmentObject private var trackedApps: TrackedAppsStore
     @EnvironmentObject private var shield: ShieldController
     @EnvironmentObject private var today: TodayStatsStore
+    @EnvironmentObject private var scoring: ScoringStore
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var authStatusLabel = FamilyControlsAuth.statusLabel
@@ -19,11 +20,45 @@ struct ProductTodayHomeView: View {
                 Section("Today") {
                     Text("Attention")
                         .font(.largeTitle.weight(.bold))
-                    Text("P06 — Today Home")
+                    Text("P07 — Goals / XP / Streak")
                         .font(.headline)
-                    Text("Counts from Never Mind / Continue / access_window events. Not opens. Not sessions. Not Screen Time Report.")
+                    Text("Counts + reinforcement from Never Mind / Continue / access_window events. Not opens. Not sessions. Not Screen Time Report.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+
+                Section("XP & streak") {
+                    metric("Total XP", "\(scoring.totalXP)")
+                    metric("XP today", "\(scoring.dailyXP)")
+                    metric("Never Mind streak", "\(scoring.streak) day\(scoring.streak == 1 ? "" : "s")")
+                    if let last = scoring.streakLastDay {
+                        Text("Last streak day: \(last)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(scoring.weightsLine)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+
+                Section("Today’s goals") {
+                    ForEach(scoring.goals) { goal in
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: goal.done ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(goal.done ? .green : .secondary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(goal.title)
+                                    .font(.body.weight(.semibold))
+                                Text(goal.detail)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(goal.progressLabel)
+                                    .font(.caption.monospacedDigit())
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
                 }
 
                 if FamilyControlsAuth.status != .approved {
@@ -108,6 +143,10 @@ struct ProductTodayHomeView: View {
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
+                    Text(scoring.lastAwardNote.isEmpty ? "—" : scoring.lastAwardNote)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
                     Button("Ingest now") {
                         _ = today.ingest(reason: "manual")
                         exportBlob = TodayEventLog.exportText()
@@ -122,12 +161,15 @@ struct ProductTodayHomeView: View {
                     }
                 }
 
-                Section("Recent ATTN-P06 logs") {
+                Section("Recent ATTN-P06 / P07 logs") {
                     let lines = Array(
-                        logger.lines.filter { $0.tag == "ATTN-P06" }.suffix(8).reversed()
+                        logger.lines
+                            .filter { $0.tag == "ATTN-P06" || $0.tag == "ATTN-P07" }
+                            .suffix(10)
+                            .reversed()
                     )
                     if lines.isEmpty {
-                        Text("No ATTN-P06 lines yet.")
+                        Text("No ATTN-P06/P07 lines yet.")
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(lines) { entry in
@@ -142,6 +184,7 @@ struct ProductTodayHomeView: View {
         }
         .onAppear {
             authStatusLabel = FamilyControlsAuth.statusLabel
+            scoring.loadPersisted()
             _ = today.ingest(reason: "onAppear")
             exportBlob = TodayEventLog.exportText()
         }
@@ -210,4 +253,5 @@ struct ProductTodayHomeView: View {
         .environmentObject(TrackedAppsStore.shared)
         .environmentObject(ShieldController.shared)
         .environmentObject(TodayStatsStore.shared)
+        .environmentObject(ScoringStore.shared)
 }

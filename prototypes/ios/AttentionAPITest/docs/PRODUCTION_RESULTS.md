@@ -32,8 +32,8 @@ Chose **evolved lab project** over a brand-new `com.attention.app` target so P00
 | P05 | Friction ladder L0–L2 | **PASS** | Human 2026-09-19. L0→L1→L2 trustworthy across rapid cycles + force-quit. |
 | P05A | Hard threshold re-shield | **PASS** | Human 2026-09-19–21. Usage yank works with Attention force-quit; Continue re-arms. Immediate false threshold after rearm mitigated (`includesPastActivity=false` + grace). |
 | P05B | Hybrid wall-clock close | **PASS** | Human 2026-09-21. Leave-early wall re-shield ~2–2.5 min on 15s debug (minute-aligned DA schedule + 15m past-pad; product map 15s→60s wall). Usage still yanks if staying in-app. `pad15m_v2`. |
-| P06 | Today home ingest | AWAITING HUMAN | Agent 2026-09-21: Home tab + TodayEventLog ingest. Build OK. |
-| P07 | Goals / XP / streaks | AWAITING | |
+| P06 | Today home ingest | **PASS** | Human 2026-09-21. Never Mind / Continue / window time update on yank + leave-early wall; force-quit OK; day filter: jump to 23rd → zeros, back to 21st → prior totals restored (filter not wipe). |
+| P07 | Goals / XP / streaks | AWAITING HUMAN | Agent 2026-09-21: ScoringRules + Home XP/streak/goals. Weights in `docs/SCORING_WEIGHTS.md`. Build OK. |
 | P08 | Settings + Continue budget + Pause | AWAITING | |
 | P09 | Onboarding + notification honesty | AWAITING | |
 | P10 | Usage checkpoint optional | AWAITING | |

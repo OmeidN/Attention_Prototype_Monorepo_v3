@@ -92,6 +92,22 @@ enum ShieldActionBridge {
         return decoded
     }
 
+    /// TEMP DEBUG (remove later): clear extension→host action queue used by P06 ingest.
+    static func clearAllEvents() {
+        suite?.removeObject(forKey: eventsKey)
+    }
+
+    /// TEMP DEBUG (remove later): drop shield-action events for one tracked app.
+    @discardableResult
+    static func removeEvents(forAppID appID: UUID) -> Int {
+        let before = loadEvents()
+        let kept = before.filter { $0.trackedAppId != appID }
+        if let data = try? JSONEncoder().encode(kept) {
+            suite?.set(data, forKey: eventsKey)
+        }
+        return before.count - kept.count
+    }
+
     static func lastActionSummary() -> String {
         let action = suite?.string(forKey: lastActionKey) ?? "none"
         let at = suite?.string(forKey: lastActionAtKey) ?? "?"

@@ -37,15 +37,15 @@ Streak (v1): days with ≥1 intentional choice (or meeting a small daily Never M
 
 ## Agent exit checks
 
-- [ ] Build succeeds
-- [ ] Scoring functions take events, not Report API data
-- [ ] Goal/XP/streak visible on Home
+- [x] Build succeeds
+- [x] Scoring functions take events, not Report API data
+- [x] Goal/XP/streak visible on Home
 
 ## Physical-device checklist (human)
 
 - [ ] Never Mind → XP and intentional goal update
 - [ ] Several Continues do not fake “open” goals
-- [ ] Short window earns expected bonus (if implemented)
+- [ ] Short window earns expected bonus (if implemented) — end elapsed ≤ preferred window → +5
 - [ ] Next calendar day: streak logic behaves (or note mock date test)
 - [ ] Record weights used in `PRODUCTION_RESULTS.md`
 

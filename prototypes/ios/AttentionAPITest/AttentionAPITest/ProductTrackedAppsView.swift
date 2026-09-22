@@ -87,6 +87,17 @@ struct ProductTrackedAppsView: View {
                     }
                 }
 
+                // TEMP DEBUG — remove before v1 freeze (see docs/TEMP_DEBUG_RESETS.md)
+                Section("TEMP DEBUG resets (remove later)") {
+                    Text("Testing only. Per-app reset is on each tracked app row. Global wipe clears Home/XP event log + friction counts.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button("TEMP: Wipe ALL Home/XP events", role: .destructive) {
+                        let note = TodayStatsStore.shared.tempWipeAllForTesting()
+                        statusMessage = "TEMP wipe done. \(note) Open Home — should be zeros."
+                    }
+                }
+
                 Section("P04 — Access window") {
                     Text("Continue starts a timed access_window. Re-shield at window end (no mid-scroll yank). If Attention is quit/background at end, re-shield defers until Attention is active again.")
                         .font(.caption)
@@ -376,6 +387,16 @@ struct ProductTrackedAppsView: View {
                         shield.syncWithTrackedApps(trackedApps.apps, reason: "remove_one")
                         _ = HardWindowMonitor.rearm(apps: trackedApps.apps, reason: "remove_one")
                         statusMessage = "Removed “\(app.userLabel)”."
+                    }
+                    .font(.caption)
+
+                    // TEMP DEBUG — remove before v1 freeze (see docs/TEMP_DEBUG_RESETS.md)
+                    Button("TEMP: Reset counts for this app", role: .destructive) {
+                        let note = TodayStatsStore.shared.tempResetAppForTesting(
+                            appID: app.id,
+                            label: app.userLabel
+                        )
+                        statusMessage = "TEMP reset “\(app.userLabel)”. \(note)"
                     }
                     .font(.caption)
                 }

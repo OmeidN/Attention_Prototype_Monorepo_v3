@@ -11,6 +11,7 @@ struct AttentionAPITestApp: App {
     @StateObject private var shield = ShieldController.shared
     @StateObject private var accessWindow = AccessWindowController.shared
     @StateObject private var todayStats = TodayStatsStore.shared
+    @StateObject private var scoring = ScoringStore.shared
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -56,6 +57,7 @@ struct AttentionAPITestApp: App {
         TestLogger.shared.log("ATTN-P05", "friction \(InterventionState.mappingDescription())")
         _ = TodayStatsStore.shared.ingest(reason: "app_launch")
         TestLogger.shared.log("ATTN-P06", "today_home_ready events_today=\(TodayEventLog.events(on: Date()).count)")
+        TestLogger.shared.log("ATTN-P07", "scoring_ready \(ScoringRules.weightsDescription()) total_xp=\(ScoringStore.shared.totalXP) streak=\(ScoringStore.shared.streak)")
         productShellLogger.log("app_launched")
     }
 
@@ -67,6 +69,7 @@ struct AttentionAPITestApp: App {
                 .environmentObject(shield)
                 .environmentObject(accessWindow)
                 .environmentObject(todayStats)
+                .environmentObject(scoring)
         }
         .onChange(of: scenePhase) { _, newPhase in
             let name: String

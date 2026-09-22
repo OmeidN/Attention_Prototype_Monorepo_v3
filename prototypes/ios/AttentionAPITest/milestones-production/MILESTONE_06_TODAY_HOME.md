@@ -36,16 +36,17 @@ Design plan: scoring and home reinforce the shield loop using **logged events**,
 
 ## Physical-device checklist (human)
 
-- [ ] Never Mind → Home increments intentional choices after reopen/ingest
-- [ ] Continue + window end → windows / minutes update
-- [ ] Force-quit during day → counts still correct after relaunch
-- [ ] Labels show, not raw UUIDs only
-- [ ] Record in `PRODUCTION_RESULTS.md`
+- [x] Never Mind → Home increments intentional choices after reopen/ingest
+- [x] Continue + window end → windows / minutes update (yank + leave-early wall)
+- [x] Force-quit during day → counts still correct after relaunch
+- [x] Labels show, not raw UUIDs only
+- [x] Day filter: calendar jump forward → zeros; restore real date → prior totals return
+- [x] Record in `PRODUCTION_RESULTS.md`
 
 ## Definition of done
 
-- [ ] Today home reflects real shield actions
-- [ ] Honest naming verified by human
-- [ ] Human confirmed
+- [x] Today home reflects real shield actions
+- [x] Honest naming verified by human
+- [x] Human confirmed
 
 **Next:** [P07 — Goals, XP, Streaks](./MILESTONE_07_GOALS_XP_STREAKS.md)

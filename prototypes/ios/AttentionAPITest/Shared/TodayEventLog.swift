@@ -61,6 +61,21 @@ enum TodayEventLog {
         suite?.set(data, forKey: eventsKey)
     }
 
+    /// TEMP DEBUG (remove later): drop all logged events for one tracked app (Home/XP recompute after).
+    @discardableResult
+    static func removeEvents(forAppID appID: UUID) -> Int {
+        let before = load()
+        let kept = before.filter { $0.trackedAppId != appID }
+        let removed = before.count - kept.count
+        save(kept)
+        return removed
+    }
+
+    /// TEMP DEBUG (remove later): wipe entire P06 event log.
+    static func removeAllEvents() {
+        save([])
+    }
+
     static func events(on day: Date, calendar: Calendar = .current) -> [TodayEvent] {
         load().filter { calendar.isDate($0.timestamp, inSameDayAs: day) }
             .sorted { $0.timestamp > $1.timestamp }
@@ -191,6 +206,12 @@ final class TodayStatsStore: ObservableObject {
         }
 
         refreshCounts()
+        ScoringStore.shared.recompute(
+            neverMindsToday: neverMindsToday,
+            continuesToday: continuesToday,
+            windowSecondsToday: windowSecondsToday,
+            reason: reason
+        )
         lastIngestAt = TestLogger.isoString(Date())
         lastIngestNote = "reason=\(reason) added≈\(added) today_events=\(recent.count)"
         TestLogger.shared.log("ATTN-P06", "ingest \(lastIngestNote)")
@@ -238,4 +259,61 @@ final class TodayStatsStore: ObservableObject {
 
     private static let lastIngestedStartKey = "attention.p06.last_ingested_window_start_at"
     private static let lastIngestedReshieldKey = "attention.p06.last_ingested_reshield_at"
+
+    /// TEMP DEBUG (remove later): full wipe so ingest cannot resurrect old Continues/Never Minds.
+    @discardableResult
+    func tempWipeAllForTesting() -> String {
+        TodayEventLog.removeAllEvents()
+        ShieldActionBridge.clearAllEvents()
+        InterventionState.resetToday()
+        suiteClearIngestCursors()
+        ScoringStore.shared.clearPersistedForTesting()
+        refreshCounts()
+        ScoringStore.shared.recompute(
+            neverMindsToday: neverMindsToday,
+            continuesToday: continuesToday,
+            windowSecondsToday: windowSecondsToday,
+            reason: "temp_wipe_all_events"
+        )
+        lastIngestAt = TestLogger.isoString(Date())
+        lastIngestNote = "reason=temp_wipe_all_events today_events=\(recent.count) total_xp=\(ScoringStore.shared.totalXP)"
+        TestLogger.shared.log("ATTN-TEMP", "wipe_all_events today_events=\(recent.count) total_xp=\(ScoringStore.shared.totalXP) — TEMP DEBUG remove later")
+        TestLogger.shared.log("ATTN-P06", "ingest \(lastIngestNote)")
+        return lastIngestNote
+    }
+
+    /// TEMP DEBUG (remove later): reset one tracked app across friction + both event queues.
+    @discardableResult
+    func tempResetAppForTesting(appID: UUID, label: String) -> String {
+        InterventionState.resetCounts(appID: appID)
+        let removedToday = TodayEventLog.removeEvents(forAppID: appID)
+        let removedShield = ShieldActionBridge.removeEvents(forAppID: appID)
+        refreshCounts()
+        ScoringStore.shared.recompute(
+            neverMindsToday: neverMindsToday,
+            continuesToday: continuesToday,
+            windowSecondsToday: windowSecondsToday,
+            reason: "temp_reset_app_\(label)"
+        )
+        lastIngestAt = TestLogger.isoString(Date())
+        lastIngestNote = "reason=temp_reset_app label=\(label) today_removed=\(removedToday) shield_removed=\(removedShield) today_events=\(recent.count)"
+        TestLogger.shared.log(
+            "ATTN-TEMP",
+            "reset_app label=\(label) id=\(appID.uuidString) today_removed=\(removedToday) shield_removed=\(removedShield) — TEMP DEBUG remove later"
+        )
+        TestLogger.shared.log("ATTN-P06", "ingest \(lastIngestNote)")
+        return lastIngestNote
+    }
+
+    private func suiteClearIngestCursors() {
+        AccessWindowBridge.suite?.removeObject(forKey: Self.lastIngestedStartKey)
+        AccessWindowBridge.suite?.removeObject(forKey: Self.lastIngestedReshieldKey)
+        // Mark cursors as current so the next ingest does not re-copy the last window.
+        if let startAt = AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.startedAtKey) {
+            AccessWindowBridge.suite?.set(startAt, forKey: Self.lastIngestedStartKey)
+        }
+        if let reshieldAt = AccessWindowBridge.suite?.string(forKey: AccessWindowBridge.lastReshieldAtKey) {
+            AccessWindowBridge.suite?.set(reshieldAt, forKey: Self.lastIngestedReshieldKey)
+        }
+    }
 }

@@ -27,6 +27,6 @@
 
 - Apple `intervalTooShort` if schedule span &lt; 15 minutes → past-pad `intervalStart`.
 - Arm code `pad15m_v2`; product wall still mapped 15s→60s / else window+60s.
-- Immediate post-Continue reshield mitigated in P05A path (`includesPastActivity=false` + grace); Shield All clears pending wall.
+- Immediate post-Continue reshield mitigated (`includesPastActivity=false` + **3s** premature grace). Ignoring a premature fire **re-arms** usage monitoring (max 2 retries) so Apple’s once-per-interval rule does not skip the real yank and leave only the ~1–2 min wall.
 
 **Next:** P06 Today Home
