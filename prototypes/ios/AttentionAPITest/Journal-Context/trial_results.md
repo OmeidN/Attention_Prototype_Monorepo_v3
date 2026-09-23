@@ -116,10 +116,20 @@ Human expected closes a few seconds apart (same 1 min window, Continues a few se
 
 Cause: v7 `uniquedEndDate` plus DeviceActivity’s hour:minute-only schedule. Three 1 min Continues in the same minute snap to the same end slot; uniquing bumps the second and third apps by +1 and +2 minutes so `repeats: false` does not drop a sibling `intervalDidEnd`. That stagger is what the splits show.
 
+## Trial 6 — REJECTED: `wall_burst_v1` (branch `test/wall-burst-close`, deleted)
+
+Dropped unique end minutes. First due `intervalDidEnd` was supposed to reshield every pending app Continued within ~30s.
+
+Human: Continue Snap, then IG, then TikTok within ~1s. Snap shielded ~1:32, TikTok ~1:35. **Instagram never shielded.** Later ~3:14 Snap+TikTok closed together; IG still open.
+
+Restore: `git checkout main` → `98291b0`. Burst branch deleted.
+
 ## Read
 
+- **Current closer:** `wall_multi_v7` on `main` @ 98291b0.
 - v7 did not repeat the “first close kills the next wall” failure.
 - Force-quit trials (3, 4, 5) are the clean proof the monitor extension can close without Attention.
 - Trial 1 noise is the 15s→60s floor plus host catch-up while Apps was in the foreground, not a second-wall wipe.
 - Snap’s `intervalDidEnd` is the flakier of the two when Attention is open; host catch-up covers it. When Attention is quit, Snap still closed on the 1 min cadence.
-- Trial 5: same-length walls continued together do **not** close together. They queue one minute apart by design (unique end minutes). Production impact is low unless several same-length Continues land in the same minute.
+- Trial 5: same-length walls continued together do **not** close together. They queue one minute apart by design (unique end minutes).
+- Trial 6: burst-close is **not** a substitute for unique end minutes. A dropped sibling stays unshielded.

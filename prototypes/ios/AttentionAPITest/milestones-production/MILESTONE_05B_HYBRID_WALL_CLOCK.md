@@ -18,16 +18,20 @@
 ## Physical-device checklist
 
 - [x] 15s debug leave-early wall (historical hybrid PASS) — human 2026-09-21
-- [ ] Wall-only: 15s or 1 min Settings → Continue → shield returns ~1–2 min (`last_close=wall_clock`, `code=wall_only_v1`, `until_end_s` small)
-- [ ] 5 min window → wall ~5–6 min (minute snap)
+- [x] Wall-only 15s debug / 1 min → shield returns ~1–2 min (`last_close=wall_clock` or host catch-up; `code=wall_multi_v7`) — human 2026-09-22
+- [x] 3 min / 5 min windows → wall ≈ window + minute snap — human 2026-09-22 (IG 3, TikTok 5)
+- [x] Force-quit Attention → walls still close — human 2026-09-22 trials 3–5
 - [x] Record in PRODUCTION_RESULTS
 
-## Device notes (2026-09-22)
+## Device notes (2026-09-22) — current: `wall_multi_v7` on `main` @ 98291b0
 
 - Arm code `wall_multi_v7`; product wall `max(60, window)`; **per-app** DeviceActivity names so Continue on A does not cancel B.
 - `intervalDidEnd` more than 20s before that app's armed `endAt` is ignored (stale callback). It does not re-shield and does not clear the new wall. Legacy single-activity callbacks are ignored.
-- v7: leftover `intervalDidEnd` from session N must not wipe session N+1 (coordinated pending-map CAS + live-marker fail-closed). Two walls must not share the same hour:minute slot (`repeats: false` only fires once). Host catch-up closes due walls if DeviceActivity drops the second callback.
+- Leftover `intervalDidEnd` from session N must not wipe session N+1 (coordinated pending-map CAS + live-marker fail-closed).
+- **Unique end minutes:** two walls must not share the same hour:minute slot (`repeats: false` only fires once). Same-length Continues in the same minute queue ~1 min apart (`uniquedEndDate`). Honest copy: wall is minute-snapped, not a stopwatch.
+- Host catch-up closes due walls if DeviceActivity drops a callback (Attention foreground only).
 - Usage closer OFF (`usageCloserEnabled=false`); leftover usage callbacks ignored.
+- **Rejected (2026-09-22):** `wall_burst_v1` — drop uniquing and close a 30s Continue-all burst from the first callback. Snap + TikTok closed; Instagram never reshielded (same-slot `intervalDidEnd` drop, burst did not cover it). Reverted to `main`.
 - Expected: Shield both → Continue A → A unblocked with its wall; B stays shielded until Continue B (own wall). After A reshields, Continue A again → A must reshield on the new wall.
 
-**Next:** P06 Today Home (already shipped) / continue P08+ dogfood
+**Next:** P08 Settings/Budget device confirm, then P09+ dogfood

@@ -37,7 +37,7 @@ Spine: shield at the door → Never Mind or timed Continue → re-shield → rew
 4. Friction L0→L2 from `continues_today` via App Group is trustworthy; no Continue-delay API.
 5. Shielded apps suppress notifications — design with honesty, not bypass.
 6. Monitor extension can re-shield while host is dead (`on_threshold`); may interrupt mid-use.
-7. Wall closer (P05B): **wall-only** (`max(60, window)`; 15s/1min→60s); DA ≥15m schedule + past-pad; minute-aligned. Usage threshold off.
+7. Wall closer (P05B, **`wall_multi_v7`**): **wall-only** (`max(60, window)`; 15s/1min→60s); DA ≥15m schedule + past-pad; minute-aligned; **unique end minutes** so same-slot `repeats: false` does not drop a sibling. Same-length Continue-all queues ~1 min. Usage threshold off. Burst-close (same-minute group yank) rejected — a dropped `intervalDidEnd` left an app unshielded.
 
 ## Milestone index
 

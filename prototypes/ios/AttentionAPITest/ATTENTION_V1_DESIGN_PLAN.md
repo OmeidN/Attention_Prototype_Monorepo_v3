@@ -405,7 +405,7 @@ Resolve before or during early build — none reverse the Access Window Model:
 
 **Milestone:** `milestones-production/MILESTONE_05A_HARD_THRESHOLD_RESHIELD.md` + `MILESTONE_05B_HYBRID_WALL_CLOCK.md`
 
-**Hybrid → wall-only (P05B — 2026-09-22):** in-app usage threshold **OFF** (unreliable vs wall). Closer is wall `intervalDidEnd` only. Wall = `max(60, window)` (15s/1 min → 60s; longer → window). Schedules past-pad ≥15m; end is minute-aligned (~1–2 min on short windows), not a stopwatch.
+**Hybrid → wall-only (P05B — 2026-09-22):** in-app usage threshold **OFF** (unreliable vs wall). Closer is wall `intervalDidEnd` only. Wall = `max(60, window)` (15s/1 min → 60s; longer → window). Schedules past-pad ≥15m; end is minute-aligned (~1–2 min on short windows), not a stopwatch. **Per-app activity names** + **unique end minutes** (`wall_multi_v7` on `main`). Same-length Continues in the same minute queue ~1 min apart so each app still closes. A burst-close experiment (one callback closes the Continue-all group) left Instagram unshielded and was reverted.
 
 Gentle host `on_window_end` remains proven (P04) as a non-default option if ever exposed.
 
