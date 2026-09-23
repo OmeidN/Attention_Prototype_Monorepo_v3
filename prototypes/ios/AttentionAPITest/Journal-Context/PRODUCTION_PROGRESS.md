@@ -4,8 +4,8 @@ Last updated: 2026-09-23
 
 | Item | Value |
 |---|---|
-| Current | **P11 — Dogfood reliability** |
-| Status | **BUILT — awaiting device confirmation** |
+| Current | **P11 PASS** — next is **P12 — Distribution entitlement** (not started) |
+| Status | **P11 PASS** (human 2026-09-23). All-day wear not run; accepted. Waiting to start P12. |
 | Prior | **P10 PASS** · **P09 PASS** · **P05B PASS** (`wall_multi_v7`) |
 | Closer | Wall-only. Usage threshold OFF as a closer. Unique end minutes. No burst-close. |
 
@@ -40,10 +40,10 @@ First launch: why → Screen Time auth → pick/name → notification honesty (c
 
 Optional duration checkpoint. Two tracked apps each showed a new timestamp after ~1 min of use. Toggle off: another minute did not add a checkpoint; the last timestamp stayed. Not a closer. Not an open or a session.
 
-## P11 (built 2026-09-23, awaiting device)
+## P11 (PASS 2026-09-23)
 
-Dogfood tab: human-ticked stress list, all-day notes, copy checklist + logs. Auth revoke shows a re-authorize CTA and does not crash. Day rollover clears Continue/Never Mind counts; budget display follows today. No new Screen Time APIs. Lab full-day skip is what this wear test is for.
+Stress matrix pass (force-quit, reboot, lock, rapid reopen, switcher, notifications, airplane, date rollover, revoke auth). All-day wear was not run; human accepted and moved on. Date jump: window time on the fake day showed ~1330 min, then ~3 min after the date was restored. Left alone.
 
 ## Next
 
-Human stress matrix + all-day notes for P11. Do not start P12 until P11 is confirmed.
+P12 (distribution entitlement) — not started. Wait for an explicit kickoff.

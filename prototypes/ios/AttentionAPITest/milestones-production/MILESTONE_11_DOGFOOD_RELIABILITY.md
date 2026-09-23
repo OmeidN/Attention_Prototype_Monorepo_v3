@@ -34,22 +34,22 @@ Lab confirmed force-quit, reboot, lock, rapid reopen, switcher, airplane, date r
 
 ## Physical-device checklist (human)
 
-- [ ] **Force quit** Attention — tracked apps still shielded
-- [ ] **Reboot** — shields + labels correct
-- [ ] **Lock/unlock** during shield and during window
-- [ ] **Rapid reopen** tracked app ~20×
-- [ ] **App switcher** — no unexpected bypass
-- [ ] **Notifications** — suppressed while shielded; behavior after Continue matches honesty copy
-- [ ] **Airplane mode** — shield still applies
-- [ ] **Date rollover** — counts/budget reset
-- [ ] **Revoke Family Controls** — no crash; clear CTA
-- [ ] **All-day dogfood** — morning / midday / evening; rough reliability notes; deferred re-shield cases recorded
-- [ ] Record each row in `PRODUCTION_RESULTS.md`
+- [x] **Force quit** Attention — tracked apps still shielded
+- [x] **Reboot** — shields + labels correct
+- [x] **Lock/unlock** during shield and during window
+- [x] **Rapid reopen** tracked app ~20×
+- [x] **App switcher** — no unexpected bypass
+- [x] **Notifications** — suppressed while shielded; behavior after Continue matches honesty copy
+- [x] **Airplane mode** — shield still applies
+- [x] **Date rollover** — counts/budget reset
+- [x] **Revoke Family Controls** — no crash; clear CTA
+- [x] **All-day dogfood** — not worn; human 2026-09-23 accepted and moved on
+- [x] Record each row in `PRODUCTION_RESULTS.md`
 
 ## Definition of done
 
-- [ ] Stress matrix recorded for product app
-- [ ] All-day dogfood completed (not skipped without human decision)
-- [ ] Critical reliability bugs fixed or accepted with documented limitation
+- [x] Stress matrix recorded for product app
+- [x] All-day dogfood completed (not skipped without human decision) — human decision: accept without the wear
+- [x] Critical reliability bugs fixed or accepted with documented limitation (date-jump ~1330 min window time on the fake day; restored with the real date; left alone)
 
 **Next:** [P12 — Distribution Entitlement](./MILESTONE_12_DISTRIBUTION_ENTITLEMENT.md)
