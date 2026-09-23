@@ -13,6 +13,8 @@ struct AttentionAPITestApp: App {
     @StateObject private var todayStats = TodayStatsStore.shared
     @StateObject private var scoring = ScoringStore.shared
     @StateObject private var settings = AttentionSettingsStore.shared
+    @StateObject private var onboarding = OnboardingStore.shared
+    @StateObject private var dogfood = DogfoodChecklistStore.shared
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -54,6 +56,10 @@ struct AttentionAPITestApp: App {
                 "ATTN-P05",
                 "day_rollover local_day=\(InterventionState.todayString()) — continues/never_mind cleared"
             )
+            TestLogger.shared.log(
+                "ATTN-P11",
+                "day_rollover local_day=\(InterventionState.todayString()) continues_never_mind_cleared budget_display_follows_today"
+            )
         }
         TestLogger.shared.log("ATTN-P05", "friction \(InterventionState.mappingDescription())")
         _ = TodayStatsStore.shared.ingest(reason: "app_launch")
@@ -62,6 +68,27 @@ struct AttentionAPITestApp: App {
         TestLogger.shared.log(
             "ATTN-P08",
             "settings_ready budget=\(AttentionSettingsStore.shared.continueBudget) window_s=\(AttentionSettingsStore.shared.defaultWindowSeconds) paused=\(AttentionSettingsStore.shared.attentionPaused)"
+        )
+        TestLogger.shared.log(
+            "ATTN-P09",
+            "onboarding_gate complete=\(OnboardingStore.shared.isComplete) last_step=\(OnboardingStore.shared.lastStep)"
+        )
+        if AttentionSettingsStore.shared.usageCheckpointEnabled,
+           ShieldCopySettings.suite?.string(forKey: UsageCheckpointMonitor.statusKey) != "monitoring" {
+            _ = UsageCheckpointMonitor.start(apps: TrackedAppsStore.shared.apps)
+        }
+        UsageCheckpointMonitor.flushHostNotes()
+        TestLogger.shared.log(
+            "ATTN-P10",
+            "checkpoint_gate enabled=\(AttentionSettingsStore.shared.usageCheckpointEnabled) \(UsageCheckpointMonitor.statusLine())"
+        )
+        if FamilyControlsAuth.status != .approved {
+            ShieldController.shared.markAuthLostUI()
+            TestLogger.shared.log("ATTN-P11", "auth_lost status=\(FamilyControlsAuth.statusLabel) at_launch")
+        }
+        TestLogger.shared.log(
+            "ATTN-P11",
+            "dogfood_ready local_day=\(InterventionState.todayString()) auth=\(FamilyControlsAuth.statusLabel) tracked=\(TrackedAppsStore.shared.apps.count) uuid_pk=true \(DogfoodChecklistStore.shared.summaryLine())"
         )
         productShellLogger.log("app_launched")
     }
@@ -76,6 +103,8 @@ struct AttentionAPITestApp: App {
                 .environmentObject(todayStats)
                 .environmentObject(scoring)
                 .environmentObject(settings)
+                .environmentObject(onboarding)
+                .environmentObject(dogfood)
         }
         .onChange(of: scenePhase) { _, newPhase in
             let name: String
@@ -94,6 +123,7 @@ struct AttentionAPITestApp: App {
                 if FamilyControlsAuth.status != .approved {
                     ShieldController.shared.markAuthLostUI()
                     TestLogger.shared.log("ATTN-P02", "auth_lost status=\(auth)")
+                    TestLogger.shared.log("ATTN-P11", "auth_lost status=\(auth) surface=scene_active")
                 }
                 TrackedAppsStore.shared.load()
                 TestLogger.shared.log(
@@ -114,6 +144,10 @@ struct AttentionAPITestApp: App {
                     TestLogger.shared.log(
                         "ATTN-P05",
                         "day_rollover local_day=\(InterventionState.todayString()) — continues/never_mind cleared"
+                    )
+                    TestLogger.shared.log(
+                        "ATTN-P11",
+                        "day_rollover local_day=\(InterventionState.todayString()) continues_never_mind_cleared budget_display_follows_today"
                     )
                 }
                 _ = TodayStatsStore.shared.ingest(reason: "app_scene_active")

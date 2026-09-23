@@ -35,9 +35,9 @@ Chose **evolved lab project** over a brand-new `com.attention.app` target so P00
 | P06 | Today home ingest | **PASS** | Human 2026-09-21. Never Mind / Continue / window time update on yank + leave-early wall; force-quit OK; day filter: jump to 23rd → zeros, back to 21st → prior totals restored (filter not wipe). |
 | P07 | Goals / XP / streaks | **PASS** | Human 2026-09-21. Never Mind → XP/goals; Continues don't fake opens; window end updates; day filter OK. Weights: `docs/SCORING_WEIGHTS.md`. |
 | P08 | Settings + Continue budget + Pause | **PASS** | Human confirmed on device 2026-09-23. Settings default window applies to preferred + all tracked apps; next Continue uses new duration (15s/1min still ~60s wall). Home remaining = budget − continues_today (floor 0); Continue still works at 0; L2 copy OK. Pause confirm clears shields; Resume / Shield all restores. **Decisions:** Continue budget **global**; window **editable mid-day** from Settings; Pause Attention **yes, with confirm**. P10 usage-checkpoint left stubbed. |
-| P09 | Onboarding + notification honesty | AWAITING | |
-| P10 | Usage checkpoint optional | AWAITING | |
-| P11 | Dogfood / stress / all-day | AWAITING | |
+| P09 | Onboarding + notification honesty | **PASS** | Human confirmed on device 2026-09-23. Full path: why → auth → pick/name → notification honesty (checkbox required) → window/budget → shields. Second launch goes to Home. Honesty copy matched shield/notification behavior. Tips replay and first-launch reset available in Settings. |
+| P10 | Usage checkpoint optional | **PASS** | Human 2026-09-23. Toggle on: two different tracked apps each got a new timestamp after ~1 min of use. Toggle off: another minute in a tracked app added nothing; last timestamp stayed. Side signal only (`threshold_unit=duration`); not an open or a session; wall closer unchanged. `checkpoint_unavailable` not reported. |
+| P11 | Dogfood / stress / all-day | AWAITING HUMAN | Agent 2026-09-23: Dogfood tab checklist (force-quit, reboot, lock, rapid reopen, switcher, notifications, airplane, date rollover, revoke auth, all-day) + copy logs. Launch/foreground: auth not approved clears shield-UI optimism and logs `ATTN-P11 auth_lost`. Day change logs `ATTN-P11 day_rollover` and clears Continue/Never Mind counts; Home budget follows today's events. No new Screen Time APIs. Build OK. |
 | P12 | Distribution entitlement | AWAITING | |
 | P13 | Recap + v1 freeze | AWAITING | |
 

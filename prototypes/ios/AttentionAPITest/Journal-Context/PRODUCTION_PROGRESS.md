@@ -4,10 +4,10 @@ Last updated: 2026-09-23
 
 | Item | Value |
 |---|---|
-| Current | **P08 PASS** — next is **P09 — Onboarding** (not started) |
-| Status | **P08 PASS** (human 2026-09-23). Waiting to start P09. |
-| Prior | **P05B PASS** (`wall_multi_v7` on `main` @ 98291b0) · **P07 PASS** |
-| Closer | Wall-only. Usage threshold OFF. Unique end minutes. No burst-close. |
+| Current | **P11 — Dogfood reliability** |
+| Status | **BUILT — awaiting device confirmation** |
+| Prior | **P10 PASS** · **P09 PASS** · **P05B PASS** (`wall_multi_v7`) |
+| Closer | Wall-only. Usage threshold OFF as a closer. Unique end minutes. No burst-close. |
 
 ## P05B (settled 2026-09-22)
 
@@ -22,7 +22,11 @@ Last updated: 2026-09-23
 
 ## P08 (PASS 2026-09-23)
 
-Settings tab: global default window (applies preferred + all tracked apps; next Continue uses it), global Continue budget, Pause Attention (confirm). Home shows Continues remaining. Budget does not lock Continue. Per-app pickers remain on Apps. P10 usage-checkpoint toggle left stubbed.
+Settings tab: global default window (applies preferred + all tracked apps; next Continue uses it), global Continue budget, Pause Attention (confirm). Home shows Continues remaining. Budget does not lock Continue. Per-app pickers remain on Apps.
+
+## P09 (PASS 2026-09-23)
+
+First launch: why → Screen Time auth → pick/name → notification honesty (checkbox required) → window + global budget → apply shields or skip with warning. Second launch skips when the flag is set. Settings can replay tips or reset the first-launch flag.
 
 ## Decisions recorded
 
@@ -30,7 +34,16 @@ Settings tab: global default window (applies preferred + all tracked apps; next 
 - Window default: **editable mid-day** from Settings
 - Pause Attention: **yes**, with confirmation
 - Closer: **wall-only + unique end minutes** (not usage threshold, not burst-close)
+- Usage checkpoint: **optional side signal** (P10). Not a closer. Not an open.
+
+## P10 (PASS 2026-09-23)
+
+Optional duration checkpoint. Two tracked apps each showed a new timestamp after ~1 min of use. Toggle off: another minute did not add a checkpoint; the last timestamp stayed. Not a closer. Not an open or a session.
+
+## P11 (built 2026-09-23, awaiting device)
+
+Dogfood tab: human-ticked stress list, all-day notes, copy checklist + logs. Auth revoke shows a re-authorize CTA and does not crash. Day rollover clears Continue/Never Mind counts; budget display follows today. No new Screen Time APIs. Lab full-day skip is what this wear test is for.
 
 ## Next
 
-P09 (onboarding + yank/notification honesty) — not started. Wait for an explicit kickoff.
+Human stress matrix + all-day notes for P11. Do not start P12 until P11 is confirmed.

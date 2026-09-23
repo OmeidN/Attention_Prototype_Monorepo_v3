@@ -33,22 +33,22 @@ Lab M12: shielded apps suppress notifications; backlog may appear after Continue
 
 ## Agent exit checks
 
-- [ ] Build succeeds
-- [ ] First-launch gate works; second launch skips
-- [ ] Notification honesty step cannot be skipped without acknowledgment
-- [ ] No claim of tracking opens in onboarding copy
+- [x] Build succeeds
+- [x] First-launch gate works; second launch skips (flag `attention.p09.onboarding_complete`; device confirm still required)
+- [x] Notification honesty step cannot be skipped without acknowledgment
+- [x] No claim of tracking opens in onboarding copy
 
 ## Physical-device checklist (human)
 
-- [ ] Delete app / reset first-launch → full onboarding appears
-- [ ] Auth + pick + name + notify honesty + shield apply succeed
-- [ ] Second launch → Home directly
-- [ ] Copy feels accurate vs real shield/notification behavior
-- [ ] Record in `PRODUCTION_RESULTS.md`
+- [x] Delete app / reset first-launch → full onboarding appears
+- [x] Auth + pick + name + notify honesty + shield apply succeed
+- [x] Second launch → Home directly
+- [x] Copy feels accurate vs real shield/notification behavior
+- [x] Record in `PRODUCTION_RESULTS.md`
 
 ## Definition of done
 
-- [ ] Onboarding complete path on device
-- [ ] Human confirmed honesty screen is clear
+- [x] Onboarding complete path on device
+- [x] Human confirmed honesty screen is clear (2026-09-23)
 
 **Next:** [P10 — Usage Checkpoint (Optional)](./MILESTONE_10_USAGE_CHECKPOINT_OPTIONAL.md)

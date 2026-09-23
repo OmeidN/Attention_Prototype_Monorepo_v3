@@ -63,7 +63,18 @@ final class AttentionSettingsStore: ObservableObject {
     func setUsageCheckpointEnabled(_ on: Bool) {
         usageCheckpointEnabled = on
         suite?.set(on, forKey: Self.usageCheckpointStubKey)
-        TestLogger.shared.log("ATTN-P08", "usage_checkpoint_stub enabled=\(on) (wired in P10)")
+        if on {
+            let err = UsageCheckpointMonitor.start(apps: TrackedAppsStore.shared.apps)
+            if let err {
+                TestLogger.shared.log("ATTN-P10", err)
+            } else {
+                TestLogger.shared.log("ATTN-P10", "toggle_on \(UsageCheckpointMonitor.statusLine())")
+            }
+        } else {
+            UsageCheckpointMonitor.stop()
+            TestLogger.shared.log("ATTN-P10", "toggle_off \(UsageCheckpointMonitor.statusLine())")
+        }
+        UsageCheckpointMonitor.flushHostNotes()
     }
 
     func continuesRemaining(continuesToday: Int) -> Int {

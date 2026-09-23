@@ -99,7 +99,8 @@ struct ProductTodayHomeView: View {
                     )
                     metric("Access windows", "\(today.windowsToday)")
                     metric("Window time", formatDuration(today.windowSecondsToday))
-                    Text("Window time = elapsed (or planned) access_window length from logged start/end — not Screen Time minutes. Budget is global; Continue still works at 0 remaining.")
+                    metric("Usage checkpoints (duration)", "\(today.usageCheckpointsToday)")
+                    Text("Window time = elapsed (or planned) access_window length from logged start/end — not Screen Time minutes. A usage checkpoint is a duration side signal, not an open and not a session. Budget is global; Continue still works at 0 remaining.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     if settings.attentionPaused {
@@ -210,7 +211,8 @@ struct ProductTodayHomeView: View {
         let t = ISO8601DateFormatter().string(from: e.timestamp)
         let label = e.userLabel ?? "NO_LABEL"
         let dur = e.durationSeconds.map { " \($0)s" } ?? ""
-        return "\(t) \(e.type) \(label)\(dur)"
+        let kind = e.type == "usage_checkpoint" ? "usage checkpoint" : e.type
+        return "\(t) \(kind) \(label)\(dur)"
     }
 
     private func formatDuration(_ seconds: Int) -> String {

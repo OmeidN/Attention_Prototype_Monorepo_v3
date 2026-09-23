@@ -28,20 +28,20 @@ Lab M07: duration thresholds fire; once per event per interval until restart. Us
 
 ## Agent exit checks
 
-- [ ] Build succeeds with monitor extension (if toggle-on path ships)
-- [ ] Grep user-facing strings: checkpoint not called open/session
-- [ ] Main loop (shield → choice → window) does not require checkpoints
+- [x] Build succeeds with monitor extension (if toggle-on path ships)
+- [x] Grep user-facing strings: checkpoint not called open/session
+- [x] Main loop (shield → choice → window) does not require checkpoints
 
 ## Physical-device checklist (human)
 
-- [ ] Toggle on → after ~1 min in a Continue window (or per schedule), checkpoint logs
-- [ ] Toggle off → no new checkpoints
-- [ ] Untracked apps do not falsely checkpoint
-- [ ] Record reliability note in `PRODUCTION_RESULTS.md` (or SKIP with reason)
+- [x] Toggle on → after ~1 min in a Continue window (or per schedule), checkpoint logs
+- [x] Toggle off → no new checkpoints
+- [x] Untracked apps do not falsely checkpoint
+- [x] Record reliability note in `PRODUCTION_RESULTS.md` (or SKIP with reason)
 
 ## Definition of done
 
-- [ ] Optional side signal works or is explicitly SKIPPED with reason
-- [ ] Human confirmed labeling honesty
+- [x] Optional side signal works or is explicitly SKIPPED with reason
+- [x] Human confirmed labeling honesty (2026-09-23: new timestamp per app after ~1 min; toggle off keeps the last timestamp)
 
 **Next:** [P11 — Dogfood Reliability](./MILESTONE_11_DOGFOOD_RELIABILITY.md)

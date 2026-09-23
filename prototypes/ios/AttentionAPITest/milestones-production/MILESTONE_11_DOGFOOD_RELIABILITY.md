@@ -28,9 +28,9 @@ Lab confirmed force-quit, reboot, lock, rapid reopen, switcher, airplane, date r
 
 ## Agent exit checks
 
-- [ ] Build succeeds
-- [ ] Denied/revoked auth is a non-crash UI state
-- [ ] UUID still PK (no silent token-as-PK)
+- [x] Build succeeds
+- [x] Denied/revoked auth is a non-crash UI state
+- [x] UUID still PK (no silent token-as-PK)
 
 ## Physical-device checklist (human)
 

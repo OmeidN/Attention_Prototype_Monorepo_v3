@@ -7,6 +7,7 @@ struct ProductSettingsView: View {
     @EnvironmentObject private var shield: ShieldController
     @EnvironmentObject private var settings: AttentionSettingsStore
     @EnvironmentObject private var accessWindow: AccessWindowController
+    @EnvironmentObject private var onboarding: OnboardingStore
 
     @State private var showPauseConfirm = false
     @State private var statusMessage = ""
@@ -54,14 +55,22 @@ struct ProductSettingsView: View {
                     }
                 }
 
-                Section("Optional (P10 stub)") {
-                    Toggle("Usage checkpoint insights", isOn: Binding(
+                Section("Usage checkpoint (P10, optional)") {
+                    Toggle("Usage checkpoint", isOn: Binding(
                         get: { settings.usageCheckpointEnabled },
                         set: { settings.setUsageCheckpointEnabled($0) }
                     ))
-                    Text("Stub only — soft insight wiring is P10. Does not close windows.")
-                        .font(.caption2)
+                    Text("Side signal only. About 1 minute of use of a tracked app can log a usage checkpoint. It does not close the window, does not block Continue, and is not an open or a session. Once per app until you toggle off and on. Default off. Wall closer is unchanged.")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
+                    Text(UsageCheckpointMonitor.statusLine())
+                        .font(.caption2.monospaced())
+                        .textSelection(.enabled)
+                    if UsageCheckpointMonitor.statusLine().contains("checkpoint_unavailable") {
+                        Text("checkpoint_unavailable — insight did not start. The shield loop still works.")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.orange)
+                    }
                 }
 
                 Section("Pause Attention") {
@@ -88,6 +97,25 @@ struct ProductSettingsView: View {
                             .font(.caption)
                             .textSelection(.enabled)
                     }
+                }
+
+                Section("Onboarding (P09)") {
+                    Text(onboarding.isComplete ? "First-launch complete. Next cold start goes to Home." : "First-launch not complete. This screen is behind onboarding.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("Last step: \(onboarding.lastStep)")
+                        .font(.caption2)
+                        .textSelection(.enabled)
+                    Button("Show onboarding tips") {
+                        onboarding.requestTipsReplay()
+                    }
+                    Button("Reset first-launch flag", role: .destructive) {
+                        onboarding.resetFirstLaunch()
+                        statusMessage = "First-launch reset. Onboarding should be on screen now."
+                    }
+                    Text("Reset is the in-app stand-in for delete + reinstall. Tips replay does not clear the flag.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Decisions (v1)") {
@@ -121,6 +149,7 @@ struct ProductSettingsView: View {
             .onAppear {
                 settings.reload()
                 accessWindow.durationSeconds = settings.defaultWindowSeconds
+                UsageCheckpointMonitor.flushHostNotes()
             }
             .confirmationDialog(
                 "Pause Attention?",
@@ -184,4 +213,5 @@ struct ProductSettingsView: View {
         .environmentObject(ShieldController.shared)
         .environmentObject(AttentionSettingsStore.shared)
         .environmentObject(AccessWindowController.shared)
+        .environmentObject(OnboardingStore.shared)
 }

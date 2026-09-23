@@ -3,7 +3,7 @@ import Foundation
 /// P06: one logged behavioral event for Today Home (not opens / not sessions).
 struct TodayEvent: Codable, Equatable, Identifiable {
     let id: UUID
-    /// `intentional_choice` | `continue` | `access_window_start` | `access_window_end` | `reshield_debug`
+    /// `intentional_choice` | `continue` | `access_window_start` | `access_window_end` | `reshield_debug` | `usage_checkpoint`
     let type: String
     let trackedAppId: UUID?
     let userLabel: String?
@@ -112,6 +112,7 @@ final class TodayStatsStore: ObservableObject {
     @Published private(set) var continuesToday = 0
     @Published private(set) var windowsToday = 0
     @Published private(set) var windowSecondsToday = 0
+    @Published private(set) var usageCheckpointsToday = 0
     @Published private(set) var perApp: [AppBreakdown] = []
     @Published private(set) var recent: [TodayEvent] = []
     @Published private(set) var lastIngestAt: String = "never"
@@ -219,6 +220,7 @@ final class TodayStatsStore: ObservableObject {
         }
 
         refreshCounts()
+        UsageCheckpointMonitor.flushHostNotes()
         ScoringStore.shared.recompute(
             neverMindsToday: neverMindsToday,
             continuesToday: continuesToday,
@@ -239,6 +241,7 @@ final class TodayStatsStore: ObservableObject {
         let starts = today.filter { $0.type == "access_window_start" }
         let ends = today.filter { $0.type == "access_window_end" }
         windowsToday = max(starts.count, ends.count)
+        usageCheckpointsToday = today.filter { $0.type == "usage_checkpoint" }.count
         windowSecondsToday = ends.compactMap(\.durationSeconds).reduce(0, +)
         if windowSecondsToday == 0 {
             // Fallback: planned durations from starts if ends not ingested yet

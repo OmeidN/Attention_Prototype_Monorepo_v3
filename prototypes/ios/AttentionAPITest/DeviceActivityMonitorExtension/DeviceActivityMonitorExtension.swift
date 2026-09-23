@@ -47,6 +47,11 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         activity: DeviceActivityName
     ) {
         super.eventDidReachThreshold(event, activity: activity)
+        if UsageCheckpointMonitor.isCheckpointActivity(activity.rawValue) {
+            UsageCheckpointMonitor.recordThreshold(eventRaw: event.rawValue)
+            return
+        }
+
         DeviceActivityBridge.recordThreshold(activity: activity.rawValue, eventRaw: event.rawValue)
 
         let (ids, labels) = Self.resolveEvent(event.rawValue)
