@@ -40,15 +40,15 @@ Open decisions from design plan to resolve here (record in `PRODUCTION_RESULTS.m
 
 ## Physical-device checklist (human)
 
-- [ ] Change window length → next Continue uses new duration
-- [ ] Hit budget → Home shows 0 remaining; Continue still works; L2 copy still OK
-- [ ] Pause Attention → tracked apps open; Resume → shielded again
-- [ ] Record budget/global choice in `PRODUCTION_RESULTS.md`
+- [x] Change window length → next Continue uses new duration
+- [x] Hit budget → Home shows 0 remaining; Continue still works; L2 copy still OK
+- [x] Pause Attention → tracked apps open; Resume → shielded again
+- [x] Record budget/global choice in `PRODUCTION_RESULTS.md`
 
 ## Definition of done
 
-- [ ] Settings drive real behavior
-- [ ] Pause path confirmed safe/clear
-- [ ] Human confirmed
+- [x] Settings drive real behavior
+- [x] Pause path confirmed safe/clear
+- [x] Human confirmed (2026-09-23): budget **global**, window **editable mid-day**, Pause **yes with confirm**
 
 **Next:** [P09 — Onboarding](./MILESTONE_09_ONBOARDING.md)

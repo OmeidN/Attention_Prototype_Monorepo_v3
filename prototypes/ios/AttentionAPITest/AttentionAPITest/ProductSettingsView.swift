@@ -17,8 +17,26 @@ struct ProductSettingsView: View {
                 Section("P08 — Settings") {
                     Text("Attention")
                         .font(.largeTitle.weight(.bold))
-                    Text("Daily Continue budget (global) and Pause Attention. Window length is on each app in the Apps tab. Budget does not lock Continue.")
+                    Text("Default window (all tracked apps), daily Continue budget (global), and Pause Attention. Budget does not lock Continue.")
                         .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("Default access window") {
+                    Text("Applies to preferred duration + every tracked app. Next Continue uses this length. Mid-day edit is allowed. Apps-tab pickers can still override one app afterward.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Picker("Window", selection: Binding(
+                        get: { settings.defaultWindowSeconds },
+                        set: { applyDefaultWindow($0) }
+                    )) {
+                        ForEach(AccessWindowBridge.durationChoices, id: \.seconds) { choice in
+                            let wall = HardWindowMonitor.wallClockSeconds(forUsageWindowSeconds: choice.seconds)
+                            Text("\(choice.label) (wall \(Self.formatDuration(wall)))").tag(choice.seconds)
+                        }
+                    }
+                    Text("Wall closer is max(60s, window). 15s debug and 1 min both close at ~60s.")
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
 
@@ -79,6 +97,25 @@ struct ProductSettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+
+                Section("Recent ATTN-P08 logs") {
+                    let lines = Array(
+                        logger.lines
+                            .filter { $0.tag == "ATTN-P08" }
+                            .suffix(8)
+                            .reversed()
+                    )
+                    if lines.isEmpty {
+                        Text("No ATTN-P08 lines yet.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(lines) { entry in
+                            Text(entry.formatted)
+                                .font(.system(.caption2, design: .monospaced))
+                                .textSelection(.enabled)
+                        }
+                    }
+                }
             }
             .navigationTitle("Settings")
             .onAppear {
@@ -98,6 +135,19 @@ struct ProductSettingsView: View {
                 Text("Tracked apps will open without the Attention pause until you tap Resume / Shield all. This is temporary — not uninstall.")
             }
         }
+    }
+
+    private func applyDefaultWindow(_ seconds: Int) {
+        settings.setDefaultWindowSeconds(seconds)
+        let wall = HardWindowMonitor.wallClockSeconds(forUsageWindowSeconds: seconds)
+        statusMessage = "Default window \(Self.formatDuration(seconds)) (wall \(Self.formatDuration(wall))) applied to \(trackedApps.apps.count) tracked app(s). Next Continue uses this length."
+    }
+
+    private static func formatDuration(_ seconds: Int) -> String {
+        if seconds < 60 { return "\(seconds)s" }
+        let m = seconds / 60
+        let s = seconds % 60
+        return s == 0 ? "\(m) min" : "\(m)m \(s)s"
     }
 
     private func pauseAttention() {
