@@ -24,8 +24,10 @@
 
 ## Device notes (2026-09-22)
 
-- Arm code `wall_multi_v1`; product wall `max(60, window)`; **per-app** DeviceActivity names so Continue on A does not cancel B.
+- Arm code `wall_multi_v7`; product wall `max(60, window)`; **per-app** DeviceActivity names so Continue on A does not cancel B.
+- `intervalDidEnd` more than 20s before that app's armed `endAt` is ignored (stale callback). It does not re-shield and does not clear the new wall. Legacy single-activity callbacks are ignored.
+- v7: leftover `intervalDidEnd` from session N must not wipe session N+1 (coordinated pending-map CAS + live-marker fail-closed). Two walls must not share the same hour:minute slot (`repeats: false` only fires once). Host catch-up closes due walls if DeviceActivity drops the second callback.
 - Usage closer OFF (`usageCloserEnabled=false`); leftover usage callbacks ignored.
-- Expected: Shield both → Continue A → A unblocked with its wall; B stays shielded until Continue B (own wall).
+- Expected: Shield both → Continue A → A unblocked with its wall; B stays shielded until Continue B (own wall). After A reshields, Continue A again → A must reshield on the new wall.
 
 **Next:** P06 Today Home (already shipped) / continue P08+ dogfood

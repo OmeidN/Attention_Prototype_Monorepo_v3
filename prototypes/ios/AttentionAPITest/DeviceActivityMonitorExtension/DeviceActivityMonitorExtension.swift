@@ -10,8 +10,8 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         DeviceActivityBridge.recordIntervalStart(activity: activity.rawValue)
         if HardWindowMonitor.isWallActivity(activity.rawValue) {
             HardWindowMonitor.suite?.set(
-                "wall_interval_started activity=\(activity.rawValue) at=\(ISO8601DateFormatter().string(from: Date()))",
-                forKey: HardWindowMonitor.wallArmSummaryKey
+                "monitor_code=\(HardWindowMonitor.wallArmCode) event=intervalDidStart activity=\(activity.rawValue) at=\(ISO8601DateFormatter().string(from: Date()))",
+                forKey: HardWindowMonitor.monitorBuildKey
             )
         }
     }
@@ -22,15 +22,22 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
         if HardWindowMonitor.isWallActivity(activity.rawValue) {
             HardWindowMonitor.suite?.set(
-                "wall_interval_ended activity=\(activity.rawValue) at=\(ISO8601DateFormatter().string(from: Date()))",
-                forKey: HardWindowMonitor.wallArmSummaryKey
+                "monitor_code=\(HardWindowMonitor.wallArmCode) event=intervalDidEnd activity=\(activity.rawValue) at=\(ISO8601DateFormatter().string(from: Date()))",
+                forKey: HardWindowMonitor.monitorBuildKey
             )
             let applied = ReshieldPolicy.tryWallReshieldFromMonitorExtension(activityRaw: activity.rawValue)
             if !applied {
-                HardWindowMonitor.suite?.set(
-                    "wall_interval_end pending_reshield_failed activity=\(activity.rawValue) at=\(ISO8601DateFormatter().string(from: Date()))",
-                    forKey: HardWindowMonitor.wallArmSummaryKey
-                )
+                let existing = HardWindowMonitor.suite?.string(forKey: HardWindowMonitor.wallArmSummaryKey) ?? ""
+                if !existing.contains("wall_ignored") {
+                    HardWindowMonitor.suite?.set(
+                        "wall_interval_end pending_reshield_failed activity=\(activity.rawValue) at=\(ISO8601DateFormatter().string(from: Date()))",
+                        forKey: HardWindowMonitor.wallArmSummaryKey
+                    )
+                }
+                if let data = ReshieldPolicy.suite?.data(forKey: ShieldCopySettings.trackedAppsKey),
+                   let apps = try? JSONDecoder().decode([TrackedApp].self, from: data) {
+                    _ = ReshieldPolicy.catchUpDueWalls(apps: apps, source: "monitor_ignored")
+                }
             }
         }
     }

@@ -40,7 +40,7 @@ struct ProductTrackedAppsView: View {
                     Text(HardWindowMonitor.mappingDescription())
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text("Expect: Continue app A → only A opens + own wall. App B stays shielded until its Continue. Each has independent wall (`wall_multi_v1`). last_close=wall_clock per app.")
+                    Text("Expect: Continue app A → only A opens + own wall. App B stays shielded until its Continue. Each Continue gets a new wall (`wall_multi_v7`). Window length is the picker on each row. last_close=wall_clock per app. monitor_code=wall_multi_v7 proves the monitor extension updated. A second Continue after a close must keep its own wall — leftover intervalDidEnd from the first close is ignored.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     row("Closer", "wall-only · per-app timers · may yank when that app's wall ends")
@@ -98,7 +98,7 @@ struct ProductTrackedAppsView: View {
                 }
 
                 Section("P04 — Access window (status)") {
-                    Text("Default window length lives in Settings (P08). Per-app override is on each tracked app row. Host on_window_end remains secondary to hard threshold.")
+                    Text("Window length is the picker on each tracked app row. Host on_window_end remains secondary to the wall closer.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     row("Policy", "on_threshold (hard) · host on_window_end is secondary")

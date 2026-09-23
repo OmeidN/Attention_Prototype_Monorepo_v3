@@ -41,6 +41,7 @@ enum AccessWindowBridge {
     static let durationChoices: [(label: String, seconds: Int)] = [
         ("15s debug", 15),
         ("1 min", 60),
+        ("3 min", 180),
         ("5 min", 300),
         ("10 min", 600),
         ("15 min", 900),

@@ -76,6 +76,15 @@ final class AccessWindowController: ObservableObject {
         self.attentionForeground = attentionForeground
         logWindowStartIfNeeded(reason: reason)
         consumePendingThresholdIfNeeded(reason: reason, apps: apps)
+        if attentionForeground {
+            let caught = ReshieldPolicy.catchUpDueWalls(apps: apps, source: "host_\(reason)")
+            if !caught.isEmpty {
+                TestLogger.shared.log(
+                    "ATTN-P05B",
+                    "host_catchup reason=\(reason) labels=[\(caught.joined(separator: ","))]"
+                )
+            }
+        }
         refreshStatus()
 
         if AccessWindowBridge.isPendingReshield() || windowElapsed() {

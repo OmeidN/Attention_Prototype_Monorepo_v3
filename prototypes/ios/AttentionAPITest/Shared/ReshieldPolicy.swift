@@ -169,23 +169,136 @@ enum ReshieldPolicy {
     /// Wall-clock interval ended — re-shield that Continued app only (other walls keep running).
     static func tryWallReshieldFromMonitorExtension(activityRaw: String? = nil) -> Bool {
         guard mode() == .onThreshold else { return false }
-
-        let appID: UUID?
-        if let activityRaw, let parsed = HardWindowMonitor.appID(fromWallActivityRaw: activityRaw) {
-            appID = parsed
-        } else {
-            appID = HardWindowMonitor.pendingWallAppID()
+        if HardWindowMonitor.suppressWallCallbacks {
+            HardWindowMonitor.suite?.set(
+                "wall_ignored_reentrant activity=\(activityRaw ?? "nil") at=\(ISO8601DateFormatter().string(from: Date()))",
+                forKey: HardWindowMonitor.wallArmSummaryKey
+            )
+            return false
         }
-        guard let appID else { return false }
+
+        guard let activityRaw, let parsed = HardWindowMonitor.parseWallActivity(activityRaw) else {
+            // Legacy single wall name cannot name the app. A stale callback was re-shielding
+            // whoever Continue had just armed.
+            HardWindowMonitor.suite?.set(
+                "wall_ignored_legacy activity=\(activityRaw ?? "nil") at=\(ISO8601DateFormatter().string(from: Date()))",
+                forKey: HardWindowMonitor.wallArmSummaryKey
+            )
+            return false
+        }
+        let appID = parsed.appID
+        // End time lives on the activity name so a stale UserDefaults pending map cannot
+        // make a ~30s past-pad callback look like the real wall.
+        if let namedEnd = parsed.endEpoch {
+            let remaining = Int(namedEnd - Date().timeIntervalSince1970)
+            if remaining > HardWindowMonitor.wallEarlyIgnoreSlackSeconds {
+                HardWindowMonitor.suite?.set(
+                    "wall_ignored_named_early session=\(parsed.session.map(String.init) ?? "none") remaining_s=\(remaining) end_epoch=\(Int(namedEnd)) at=\(ISO8601DateFormatter().string(from: Date()))",
+                    forKey: HardWindowMonitor.wallArmSummaryKey
+                )
+                return false
+            }
+        } else {
+            HardWindowMonitor.suite?.set(
+                "wall_ignored_unnamed_end activity=\(activityRaw) at=\(ISO8601DateFormatter().string(from: Date()))",
+                forKey: HardWindowMonitor.wallArmSummaryKey
+            )
+            return false
+        }
+        // Fail closed. A missing/stale live marker used to let an old intervalDidEnd
+        // match the old pending row and wipe the wall Continue just armed.
+        let live = HardWindowMonitor.readLiveMarker(appID: appID)
+        guard let callbackSession = parsed.session,
+              let live,
+              live.session == callbackSession
+        else {
+            HardWindowMonitor.suite?.set(
+                "wall_ignored_live_mismatch callback_session=\(parsed.session.map(String.init) ?? "none") live_session=\(live.map { String($0.session) } ?? "none") at=\(ISO8601DateFormatter().string(from: Date()))",
+                forKey: HardWindowMonitor.wallArmSummaryKey
+            )
+            return false
+        }
+        if let namedEnd = parsed.endEpoch, abs(live.endEpoch - namedEnd) > 2 {
+            HardWindowMonitor.suite?.set(
+                "wall_ignored_live_end_mismatch live_end=\(Int(live.endEpoch)) named_end=\(Int(namedEnd)) at=\(ISO8601DateFormatter().string(from: Date()))",
+                forKey: HardWindowMonitor.wallArmSummaryKey
+            )
+            return false
+        }
+        if let pending = HardWindowMonitor.pendingWall(forAppID: appID),
+           parsed.session != pending.session {
+            HardWindowMonitor.suite?.set(
+                "wall_ignored_stale_session label=\(pending.label) callback_session=\(parsed.session.map(String.init) ?? "none") armed_session=\(pending.session) at=\(ISO8601DateFormatter().string(from: Date()))",
+                forKey: HardWindowMonitor.wallArmSummaryKey
+            )
+            return false
+        }
         guard let data = suite?.data(forKey: ShieldCopySettings.trackedAppsKey),
               let apps = try? JSONDecoder().decode([TrackedApp].self, from: data),
               let match = apps.first(where: { $0.id == appID })
-        else { return false }
+        else {
+            HardWindowMonitor.suite?.set(
+                "wall_ignored_no_app id=\(appID.uuidString) at=\(ISO8601DateFormatter().string(from: Date()))",
+                forKey: HardWindowMonitor.wallArmSummaryKey
+            )
+            return false
+        }
 
-        return applyHardReshield(targets: [match], reason: "wall_clock")
+        let due = HardWindowMonitor.wallEndIsDue(appID: appID)
+        guard due.due else {
+            let note = due.note
+            // Do not re-arm here. armWallClock used to stopMonitoring the prior name and
+            // that re-delivered intervalDidEnd, which is what wiped the second wall.
+            HardWindowMonitor.suite?.set(
+                "\(note) at=\(ISO8601DateFormatter().string(from: Date()))",
+                forKey: HardWindowMonitor.wallArmSummaryKey
+            )
+            return false
+        }
+
+        let applied = applyHardReshield(targets: [match], reason: "wall_clock", expectedSession: parsed.session)
+        if applied {
+            _ = catchUpDueWalls(apps: apps, source: "monitor", except: appID)
+        }
+        return applied
     }
 
-    private static func applyHardReshield(targets: [TrackedApp], reason: String) -> Bool {
+    /// Host / monitor fallback when DeviceActivity drops a second `intervalDidEnd`
+    /// (same hour:minute slot, or a stale close wiped the first callback's twin).
+    @discardableResult
+    static func catchUpDueWalls(apps: [TrackedApp], source: String, except: UUID? = nil) -> [String] {
+        guard mode() == .onThreshold else { return [] }
+        var closed: [String] = []
+        for pending in HardWindowMonitor.loadPendingMap().values {
+            guard let id = UUID(uuidString: pending.appID), id != except,
+                  let match = apps.first(where: { $0.id == id })
+            else { continue }
+            let due = HardWindowMonitor.wallEndIsDue(appID: id)
+            guard due.due else { continue }
+            if applyHardReshield(targets: [match], reason: "wall_catchup_\(source)", expectedSession: pending.session) {
+                closed.append(match.userLabel)
+            }
+        }
+        if !closed.isEmpty {
+            HardWindowMonitor.suite?.set(
+                "wall_catchup source=\(source) labels=[\(closed.joined(separator: ","))] at=\(ISO8601DateFormatter().string(from: Date()))",
+                forKey: HardWindowMonitor.wallArmSummaryKey
+            )
+        }
+        return closed
+    }
+
+    private static func applyHardReshield(targets: [TrackedApp], reason: String, expectedSession: Int? = nil) -> Bool {
+        if let expectedSession, let app = targets.first {
+            let disk = HardWindowMonitor.pendingWall(forAppID: app.id)?.session
+            if disk != expectedSession {
+                HardWindowMonitor.suite?.set(
+                    "wall_clear_aborted reason=before_shield expected_session=\(expectedSession) disk_session=\(disk.map(String.init) ?? "none") label=\(app.userLabel)",
+                    forKey: HardWindowMonitor.wallArmSummaryKey
+                )
+                return false
+            }
+        }
         let store = ManagedSettingsStore()
         var applications = store.shield.applications ?? Set()
         for app in targets {
@@ -205,7 +318,13 @@ enum ReshieldPolicy {
                 userLabel: app.userLabel,
                 startedAtISO: openStart == nil ? HardWindowMonitor.pendingWall(forAppID: app.id)?.continuedAt : nil
             )
-            HardWindowMonitor.clearWallPending(reason: "after_\(reason)", appID: app.id)
+            let cleared = HardWindowMonitor.clearWallPending(reason: "after_\(reason)", appID: app.id, expectedSession: expectedSession)
+            if !cleared {
+                var rolledBack = store.shield.applications ?? Set()
+                rolledBack.remove(app.token)
+                store.shield.applications = rolledBack.isEmpty ? nil : rolledBack
+                return false
+            }
         } else {
             recordApplied(mode: .onThreshold, reason: "monitor_extension_\(reason)", fromExtension: true)
             HardWindowMonitor.clearWallPending(reason: "after_\(reason)")

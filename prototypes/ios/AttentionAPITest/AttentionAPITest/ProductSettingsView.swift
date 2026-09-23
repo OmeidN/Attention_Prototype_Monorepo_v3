@@ -17,25 +17,8 @@ struct ProductSettingsView: View {
                 Section("P08 — Settings") {
                     Text("Attention")
                         .font(.largeTitle.weight(.bold))
-                    Text("Default window, daily Continue budget (global), Pause Attention. Budget does not lock Continue.")
+                    Text("Daily Continue budget (global) and Pause Attention. Window length is on each app in the Apps tab. Budget does not lock Continue.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Section("Default access window") {
-                    Text("Applies to preferred duration and all tracked apps (next Continue). Per-app override still on Apps tab.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Picker("Window length", selection: Binding(
-                        get: { settings.defaultWindowSeconds },
-                        set: { settings.setDefaultWindowSeconds($0) }
-                    )) {
-                        ForEach(AccessWindowBridge.durationChoices, id: \.seconds) { choice in
-                            Text(choice.label).tag(choice.seconds)
-                        }
-                    }
-                    Text("Current preferred: \(formatDuration(settings.defaultWindowSeconds))")
-                        .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
 
@@ -141,13 +124,6 @@ struct ProductSettingsView: View {
         _ = HardWindowMonitor.rearm(apps: trackedApps.apps, reason: "resume_attention")
         statusMessage = "Resumed — shielded \(trackedApps.apps.count) app(s)."
         logger.log("ATTN-P08", "resume_attention shielded=\(trackedApps.apps.count)")
-    }
-
-    private func formatDuration(_ seconds: Int) -> String {
-        if seconds < 60 { return "\(seconds)s" }
-        let m = seconds / 60
-        let s = seconds % 60
-        return s == 0 ? "\(m) min" : "\(m)m \(s)s"
     }
 }
 

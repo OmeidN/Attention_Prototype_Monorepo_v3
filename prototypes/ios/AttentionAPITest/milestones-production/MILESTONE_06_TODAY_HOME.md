@@ -43,10 +43,32 @@ Design plan: scoring and home reinforce the shield loop using **logged events**,
 - [x] Day filter: calendar jump forward → zeros; restore real date → prior totals return
 - [x] Record in `PRODUCTION_RESULTS.md`
 
+## Amendment — per-app window bookkeeping (2026-09-22)
+
+Multi-app Continue exposed a metrics bug. Window state lived in single App Group slots
+(`window_started_at`, `window_tracked_id`, `window_label`, `window_duration_seconds`), so a second
+Continue overwrote the first app's start time, and the ingest dedupe keyed on
+`(type, timestamp±2s)` only. Because walls are minute-aligned, two apps usually close in the same
+minute — app B's `access_window_end` was swallowed as a duplicate of app A's, losing its minutes.
+
+Now:
+
+- `AccessWindowBridge.openWindowsMapKey` holds a per-app map (`appUUID → OpenWindow`) with each
+  window's own start/end/planned duration. `beginWindow` writes it; `markReshielded(trackedAppId:)`
+  consumes just that app's entry.
+- Close attribution uses `last_reshield_app_id` / `last_reshield_label` / `last_reshield_elapsed_s`
+  instead of the latest-Continue slot.
+- Ingest dedupe keys on `(type, trackedAppId, timestamp±2s)`.
+- `clearWindow` no longer drops open windows (it held the start times wall closes need).
+- Manual Shield All / Clear shields / Pause log a real `access_window_end` per open window
+  (`closeAllOpenWindows`) instead of leaving stale entries.
+- Removed a duplicate `access_window_end` append on the host `on_window_end` path.
+
 ## Definition of done
 
 - [x] Today home reflects real shield actions
 - [x] Honest naming verified by human
 - [x] Human confirmed
+- [ ] Per-app window amendment confirmed on device (two apps, same-minute close)
 
 **Next:** [P07 — Goals, XP, Streaks](./MILESTONE_07_GOALS_XP_STREAKS.md)
