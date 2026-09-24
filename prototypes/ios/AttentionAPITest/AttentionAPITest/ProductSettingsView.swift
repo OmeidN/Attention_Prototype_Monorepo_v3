@@ -118,6 +118,14 @@ struct ProductSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                Section("P12 — Distribution") {
+                    Text("Build: TestFlight candidate")
+                        .font(.headline)
+                    Text("Dev Family Controls is what this install uses. Distribution approval is a separate Apple request for the host and each extension. Not approved yet. Bundle com.attention.apitest. Team VPG6W79282.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("Decisions (v1)") {
                     Text("Continue budget: global (not per-app).")
                     Text("Default window: editable mid-day from Settings.")

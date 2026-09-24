@@ -4,9 +4,9 @@ Last updated: 2026-09-23
 
 | Item | Value |
 |---|---|
-| Current | **P11 PASS** — next is **P12 — Distribution entitlement** (not started) |
-| Status | **P11 PASS** (human 2026-09-23). All-day wear not run; accepted. Waiting to start P12. |
-| Prior | **P10 PASS** · **P09 PASS** · **P05B PASS** (`wall_multi_v7`) |
+| Current | **P13 — Recap and v1 freeze** |
+| Status | **BUILT — awaiting device confirmation** (freeze draft, not accepted) |
+| Prior | **P11 PASS** · **P10 PASS** · **P05B PASS** (`wall_multi_v7`) |
 | Closer | Wall-only. Usage threshold OFF as a closer. Unique end minutes. No burst-close. |
 
 ## P05B (settled 2026-09-22)
@@ -44,6 +44,14 @@ Optional duration checkpoint. Two tracked apps each showed a new timestamp after
 
 Stress matrix pass (force-quit, reboot, lock, rapid reopen, switcher, notifications, airplane, date rollover, revoke auth). All-day wear was not run; human accepted and moved on. Date jump: window time on the fake day showed ~1330 min, then ~3 min after the date was restored. Left alone.
 
+## P12 (Assigned 2026-09-23)
+
+Family Controls (Distribution) submitted for host, ShieldConfiguration, ShieldAction, DeviceActivityMonitor, and DeviceActivityReport. Wildcard skipped. Portal status **Assigned**. Not Approved. Archive and TestFlight not run. Phone installs still use the development entitlement.
+
+## P13 (built 2026-09-23, awaiting device)
+
+Recap tab: today totals plus last 7 days from the local event log. One rules-based sentence. No AI. No open counts. Scope freeze draft: `docs/V1_SCOPE_FREEZE.md`. Not accepted until the human confirms Recap and the six criteria.
+
 ## Next
 
-P12 (distribution entitlement) — not started. Wait for an explicit kickoff.
+Human checks Recap against a lived day and accepts or rejects the freeze. P12 stays Assigned until Apple approves; then archive. Do not start v1.1 until the freeze is accepted.

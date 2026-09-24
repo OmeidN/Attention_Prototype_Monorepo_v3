@@ -28,22 +28,22 @@ Apple: development Family Controls ≠ distribution. Request distribution for **
 
 ## Agent exit checks
 
-- [ ] Bundle ID inventory complete
-- [ ] Entitlements files reviewed for each target
-- [ ] Runbook exists in `docs/` or this milestone’s notes section in `PRODUCTION_RESULTS.md`
+- [x] Bundle ID inventory complete
+- [x] Entitlements files reviewed for each target
+- [x] Runbook exists in `docs/` or this milestone’s notes section in `PRODUCTION_RESULTS.md`
 
 ## Physical-device / human checklist
 
-- [ ] Distribution requests submitted for **host + each extension**
-- [ ] Request status recorded (Submitted / Assigned / Denied)
+- [x] Distribution requests submitted for **host + each extension** (2026-09-23; wildcard skipped)
+- [x] Request status recorded (Submitted / Assigned / Denied) — **Assigned**, not Approved
 - [ ] After approval: archive succeeds with Family Controls in profile
 - [ ] Optional: TestFlight upload smoke (install on device)
-- [ ] Record in `PRODUCTION_RESULTS.md`
+- [x] Record in `PRODUCTION_RESULTS.md`
 
 ## Definition of done
 
-- [ ] Requests submitted (minimum) or fully approved (ideal)
-- [ ] Archive/TestFlight status recorded
-- [ ] Human confirmed
+- [x] Requests submitted (minimum) or fully approved (ideal) — submitted, status Assigned
+- [ ] Archive/TestFlight status recorded — not run; waiting on Approved
+- [ ] Human confirmed — submission confirmed; milestone not closed
 
 **Next:** [P13 — Recap and v1 Freeze](./MILESTONE_13_RECAP_AND_V1_FREEZE.md)

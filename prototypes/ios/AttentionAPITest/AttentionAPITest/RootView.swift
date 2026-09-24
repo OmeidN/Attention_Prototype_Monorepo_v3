@@ -29,6 +29,9 @@ struct RootView: View {
             ProductTrackedAppsView()
                 .tabItem { Label("Apps", systemImage: "app.badge") }
 
+            ProductRecapView()
+                .tabItem { Label("Recap", systemImage: "list.bullet") }
+
             ProductSettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape") }
 

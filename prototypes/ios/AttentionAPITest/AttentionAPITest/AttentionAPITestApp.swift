@@ -90,6 +90,14 @@ struct AttentionAPITestApp: App {
             "ATTN-P11",
             "dogfood_ready local_day=\(InterventionState.todayString()) auth=\(FamilyControlsAuth.statusLabel) tracked=\(TrackedAppsStore.shared.apps.count) uuid_pk=true \(DogfoodChecklistStore.shared.summaryLine())"
         )
+        TestLogger.shared.log(
+            "ATTN-P12",
+            "distribution_candidate bundle=\(DeviceInfo.bundleIdentifier) team=VPG6W79282 family_controls_distribution=assigned label=TestFlight_candidate"
+        )
+        TestLogger.shared.log(
+            "ATTN-P13",
+            "recap_gate events=\(TodayEventLog.load().count) days=\(TodayEventLog.lastDays(count: 7).count)"
+        )
         productShellLogger.log("app_launched")
     }
 

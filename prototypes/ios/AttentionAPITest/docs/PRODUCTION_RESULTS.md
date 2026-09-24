@@ -14,7 +14,7 @@ Track production milestones **P00–P13** here. Do **not** overwrite lab `TEST_R
 - App Group: `group.com.attention.apitest`
 - Boundary decision: **evolved lab project** (keep working signing + App Group for dogfood; optional rename to `com.attention.app` at P12 distribution)
 - Display name: `Attention` (`INFOPLIST_KEY_CFBundleDisplayName`)
-- Family Controls distribution status: not requested
+- Family Controls distribution status: **Assigned** (2026-09-23). Account Holder submitted Family Controls (Distribution) for all five product IDs. Wildcard `*` was not included. Not Approved. Archive and TestFlight not run. Dev entitlement still signs the phone install. Runbook: `docs/P12_FAMILY_CONTROLS_DISTRIBUTION.md`.
 
 ## Boundary note (P00)
 
@@ -38,17 +38,20 @@ Chose **evolved lab project** over a brand-new `com.attention.app` target so P00
 | P09 | Onboarding + notification honesty | **PASS** | Human confirmed on device 2026-09-23. Full path: why → auth → pick/name → notification honesty (checkbox required) → window/budget → shields. Second launch goes to Home. Honesty copy matched shield/notification behavior. Tips replay and first-launch reset available in Settings. |
 | P10 | Usage checkpoint optional | **PASS** | Human 2026-09-23. Toggle on: two different tracked apps each got a new timestamp after ~1 min of use. Toggle off: another minute in a tracked app added nothing; last timestamp stayed. Side signal only (`threshold_unit=duration`); not an open or a session; wall closer unchanged. `checkpoint_unavailable` not reported. |
 | P11 | Dogfood / stress / all-day | **PASS** | Human 2026-09-23. Stress matrix pass: force-quit, reboot, lock/unlock, rapid reopen, app switcher, notifications, airplane, date rollover, revoke auth (no crash, re-authorize CTA). **All-day wear not run** — human accepted and moved on. Date jump: other Today counts reset; window time on the fake day showed ~1330 min (open wall billed until the new clock), then ~3 min again after the date was restored. Left alone — test artifact, not a closer bug. |
-| P12 | Distribution entitlement | AWAITING | |
-| P13 | Recap + v1 freeze | AWAITING | |
+| P12 | Distribution entitlement | IN REVIEW | Human 2026-09-23: Family Controls (Distribution) submitted for host + ShieldConfiguration + ShieldAction + DeviceActivityMonitor + DeviceActivityReport. Portal status **Assigned**. Wildcard skipped. Not Approved. Archive/TestFlight not run. |
+| P13 | Recap + v1 freeze | AWAITING HUMAN | Agent 2026-09-23: Recap tab (today + last 7 days from `TodayEventLog`, rules-based line, no AI). Freeze draft: `docs/V1_SCOPE_FREEZE.md` (not accepted). Product UI has no open/session counter. `ATTN-P13`. |
 
-## Bundle ID inventory (fill in P12)
+## Bundle ID inventory (P12, 2026-09-23)
 
-| Target | Bundle ID | Family Controls | App Group | Distribution request |
-| ------ | --------- | --------------- | --------- | -------------------- |
-| Host | com.attention.apitest | yes | group.com.attention.apitest | not requested |
-| ShieldConfiguration | com.attention.apitest.ShieldConfiguration | yes | group.com.attention.apitest | not requested |
-| ShieldAction | com.attention.apitest.ShieldAction | yes | group.com.attention.apitest | not requested |
-| DeviceActivityMonitor | com.attention.apitest.DeviceActivityMonitor | yes | group.com.attention.apitest | not requested |
+Entitlements reviewed. Each file has `com.apple.developer.family-controls` and App Group `group.com.attention.apitest`. Report is in the app archive and is not the product metric. Distribution requests for all five IDs are **Assigned**.
+
+| Target | Bundle ID | Entitlements file | Family Controls | App Group | Distribution request |
+| ------ | --------- | ----------------- | --------------- | --------- | -------------------- |
+| Host | com.attention.apitest | AttentionAPITest/AttentionAPITest.entitlements | yes | group.com.attention.apitest | **Assigned** 2026-09-23 |
+| ShieldConfiguration | com.attention.apitest.ShieldConfiguration | ShieldConfigurationExtension/ShieldConfigurationExtension.entitlements | yes | group.com.attention.apitest | **Assigned** 2026-09-23 |
+| ShieldAction | com.attention.apitest.ShieldAction | ShieldActionExtension/ShieldActionExtension.entitlements | yes | group.com.attention.apitest | **Assigned** 2026-09-23 |
+| DeviceActivityMonitor | com.attention.apitest.DeviceActivityMonitor | DeviceActivityMonitorExtension/DeviceActivityMonitorExtension.entitlements | yes | group.com.attention.apitest | **Assigned** 2026-09-23 |
+| DeviceActivityReport | com.attention.apitest.DeviceActivityReport | DeviceActivityReportExtension/DeviceActivityReportExtension.entitlements | yes | group.com.attention.apitest | **Assigned** 2026-09-23 |
 
 ## v1 success criteria (fill in P13)
 

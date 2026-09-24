@@ -81,6 +81,44 @@ enum TodayEventLog {
             .sorted { $0.timestamp > $1.timestamp }
     }
 
+    /// One local day of honest counts. Not opens. Not sessions.
+    struct DayRecap: Identifiable, Equatable {
+        var id: String { dayKey }
+        let dayKey: String
+        let day: Date
+        let neverMinds: Int
+        let continues: Int
+        let windows: Int
+        let windowSeconds: Int
+    }
+
+    /// Newest day first. Counts come only from this event log.
+    static func lastDays(count: Int = 7, ending: Date = Date(), calendar: Calendar = .current) -> [DayRecap] {
+        let start = calendar.startOfDay(for: ending)
+        return (0..<count).compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: start) else { return nil }
+            let events = events(on: day, calendar: calendar)
+            let neverMinds = events.filter { $0.type == "intentional_choice" }.count
+            let continues = events.filter { $0.type == "continue" }.count
+            let starts = events.filter { $0.type == "access_window_start" }
+            let ends = events.filter { $0.type == "access_window_end" }
+            var seconds = ends.compactMap(\.durationSeconds).reduce(0, +)
+            if seconds == 0 {
+                seconds = starts.compactMap(\.durationSeconds).reduce(0, +)
+            }
+            let parts = calendar.dateComponents([.year, .month, .day], from: day)
+            let key = String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+            return DayRecap(
+                dayKey: key,
+                day: day,
+                neverMinds: neverMinds,
+                continues: continues,
+                windows: max(starts.count, ends.count),
+                windowSeconds: seconds
+            )
+        }
+    }
+
     static func exportText(limit: Int = 40) -> String {
         let day = events(on: Date())
         let lines = day.prefix(limit).map { e in

@@ -38,10 +38,10 @@ Design plan success criteria — human should be able to affirm:
 
 ## Agent exit checks
 
-- [ ] Build succeeds
-- [ ] Recap uses event store only
-- [ ] `V1_SCOPE_FREEZE.md` exists
-- [ ] Grep product UI for dishonest “open” metrics → clean
+- [x] Build succeeds
+- [x] Recap uses event store only
+- [x] `V1_SCOPE_FREEZE.md` exists
+- [x] Grep product UI for dishonest “open” metrics → clean
 
 ## Physical-device checklist (human)
 
