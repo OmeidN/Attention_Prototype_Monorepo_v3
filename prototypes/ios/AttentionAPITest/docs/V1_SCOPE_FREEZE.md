@@ -1,9 +1,9 @@
 # Attention iOS v1 scope freeze (draft)
 
 Tag: `ATTN-P13`  
-Status: **draft — not accepted** until the human confirms the Recap tab and the six criteria in `docs/PRODUCTION_RESULTS.md`.
+Status: **draft — close-out pending.** Recap wear is in (Home matches Recap, ~2.5 days). Still need the six criteria in `docs/PRODUCTION_RESULTS.md` and a yes on this limitations list.
 
-This is the product that dogfoods on `com.attention.apitest`. It is not an App Store release. Family Controls distribution is **Assigned**, not Approved.
+This is the product that dogfoods on `com.attention.apitest`. It is not an App Store release. Family Controls (Distribution) was granted to the account (2026-09-25). Archive done. TestFlight not run.
 
 ## Included
 
@@ -29,14 +29,17 @@ This is the product that dogfoods on `com.attention.apitest`. It is not an App S
 
 ## Known limitations
 
-- The wall can return while you are still in the app (a yank). Attention does not need to stay open for that close. Design-plan line “door closes without mid-scroll yank” does **not** match this build.
+- The wall can return while you are still in the app (a yank). Human 2026-09-25: that is intended. Design-plan “no mid-scroll yank” does **not** match this build.
+- Never Mind is a button, not a felt win (criterion 2). Copy/UX later, not a closer change.
 - Continue unblocks, then you tap the app again. No auto-launch.
 - Shielded apps suppress notifications. After Continue a backlog can appear. Re-shield can clear Notification Center entries.
-- Budget at 0 still allows Continue. Copy gets firmer. It is not a lockout.
+- Budget at 0 still allows Continue. It is not a lockout.
+- Friction L1/L2 can fail if the shield extension only sees L0. 2026-09-25: level now reads today’s Continue events (same as Home). Confirm on device.
 - A manual date jump can log a huge window time on the fake day (open wall billed until the new clock). Restoring the date brings the real day back. Left alone.
 - Same-length Continue-all queues about 1 minute apart so each wall can fire.
 - Host catch-up runs when Attention is in the foreground. The monitor extension closes walls when Attention is dead.
-- Distribution entitlement is Assigned for the five bundle IDs. Dev signing is what the phone uses until Apple approves.
+- Distribution entitlement granted to the account (2026-09-25). Archive done. TestFlight not run.
+- Recap needs a few lived days after cold installs (no prior-day history).
 
 ## Copy audit (product UI)
 
@@ -44,4 +47,4 @@ Product screens do not show an open count or a session count. “Open” in prod
 
 ## After freeze
 
-New work needs a v1.1 milestone list. Do not add programs, Pro, or AI inside this freeze.
+New work needs a v1.1 milestone list in `milestones-v1.1/` (folder empty until freeze is accepted). Direction for later: `milestones-production/FUTURE_MONETIZATION.md`. Do not add programs, Pro, StoreKit, Family, credits, or AI inside this freeze.

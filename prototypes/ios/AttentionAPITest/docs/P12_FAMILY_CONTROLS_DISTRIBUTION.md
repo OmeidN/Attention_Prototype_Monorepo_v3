@@ -4,9 +4,9 @@ Tag: `ATTN-P12`
 Team ID: `VPG6W79282`  
 Account Holder only. Development Family Controls already works on device. That is not distribution approval. This runbook does not claim App Store or TestFlight approval.
 
-## Status (2026-09-23)
+## Status (2026-09-25)
 
-Requests submitted for all five bundle IDs below. Portal row **Family Controls (Distribution)** shows **Assigned**. Wildcard `*` was not requested. Capabilities checked on the identifiers include Family Controls (Development), Family Controls (Distribution), and Family Controls App and Website Usage. **Assigned is not Approved.** Archive and TestFlight wait.
+Apple email: Family Controls (Distribution) assigned to the account; capability can be configured on eligible apps. Human archived. **TestFlight not run.** v1 close-out still pending Recap wear + freeze. Do not treat this as App Store approval.
 
 ## Bundle IDs to keep
 

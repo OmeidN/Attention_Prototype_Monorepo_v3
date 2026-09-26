@@ -55,7 +55,7 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         let secondaryLabel: String
         let background: UIColor
 
-        if let appID = token.flatMap({ InterventionState.trackedAppID(for: $0) }) {
+        if let appID = resolvedAppID(token: token) {
             let continues = InterventionState.continueCount(appID: appID)
             let level = InterventionState.level(forContinueCount: continues)
             InterventionState.markLevelShown(level: level, label: label)
@@ -99,5 +99,12 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
             primaryButtonBackgroundColor: UIColor(red: 0.2, green: 0.45, blue: 0.85, alpha: 1),
             secondaryButtonLabel: ShieldConfiguration.Label(text: secondaryLabel, color: .white)
         )
+    }
+
+    private func resolvedAppID(token: ApplicationToken?) -> UUID? {
+        guard let token else { return nil }
+        if let id = InterventionState.trackedAppID(for: token) { return id }
+        if let app = ShieldActionBridge.trackedApp(for: token) { return app.id }
+        return nil
     }
 }

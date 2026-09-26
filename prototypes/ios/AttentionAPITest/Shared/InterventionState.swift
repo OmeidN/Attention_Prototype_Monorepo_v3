@@ -54,7 +54,14 @@ enum InterventionState {
 
     static func continueCount(appID: UUID) -> Int {
         ensureToday()
-        return suite?.integer(forKey: continuePrefix + appID.uuidString) ?? 0
+        suite?.synchronize()
+        let stored = suite?.integer(forKey: continuePrefix + appID.uuidString) ?? 0
+        // Shield copy must match Home. Home uses TodayEventLog; the prefix
+        // counter can stay 0 if a process missed a write or UserDefaults lagged.
+        let logged = TodayEventLog.events(on: Date()).filter {
+            $0.type == "continue" && $0.trackedAppId == appID
+        }.count
+        return max(stored, logged)
     }
 
     static func neverMindCount(appID: UUID) -> Int {
@@ -71,10 +78,11 @@ enum InterventionState {
     static func recordContinue(appID: UUID?) -> (prev: Int, next: Int, count: Int) {
         ensureToday()
         guard let appID else { return (0, 0, 0) }
-        let prevCount = continueCount(appID: appID)
-        let prev = level(forContinueCount: prevCount)
-        let nextCount = prevCount + 1
+        let stored = suite?.integer(forKey: continuePrefix + appID.uuidString) ?? 0
+        let prev = level(forContinueCount: stored)
+        let nextCount = stored + 1
         suite?.set(nextCount, forKey: continuePrefix + appID.uuidString)
+        suite?.synchronize()
         let next = level(forContinueCount: nextCount)
         return (prev, next, nextCount)
     }

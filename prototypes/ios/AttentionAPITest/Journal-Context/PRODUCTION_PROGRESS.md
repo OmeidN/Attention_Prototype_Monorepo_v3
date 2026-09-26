@@ -1,11 +1,11 @@
 # iOS Production Progress
 
-Last updated: 2026-09-23
+Last updated: 2026-09-25 (Recap wear)
 
 | Item | Value |
 |---|---|
-| Current | **P13 — Recap and v1 freeze** |
-| Status | **BUILT — awaiting device confirmation** (freeze draft, not accepted) |
+| Current | **v1 close-out pending** |
+| Status | Waiting on Recap wear + freeze accept. P12: distribution granted; archive done; TestFlight not run. |
 | Prior | **P11 PASS** · **P10 PASS** · **P05B PASS** (`wall_multi_v7`) |
 | Closer | Wall-only. Usage threshold OFF as a closer. Unique end minutes. No burst-close. |
 
@@ -44,14 +44,17 @@ Optional duration checkpoint. Two tracked apps each showed a new timestamp after
 
 Stress matrix pass (force-quit, reboot, lock, rapid reopen, switcher, notifications, airplane, date rollover, revoke auth). All-day wear was not run; human accepted and moved on. Date jump: window time on the fake day showed ~1330 min, then ~3 min after the date was restored. Left alone.
 
-## P12 (Assigned 2026-09-23)
+## P12 (close-out pending)
 
-Family Controls (Distribution) submitted for host, ShieldConfiguration, ShieldAction, DeviceActivityMonitor, and DeviceActivityReport. Wildcard skipped. Portal status **Assigned**. Not Approved. Archive and TestFlight not run. Phone installs still use the development entitlement.
+Apple email 2026-09-25: Family Controls (Distribution) assigned to the account. Human archived. **TestFlight not run.** Phone dogfood can stay on the current install. Not marked PASS until TestFlight is recorded or the human accepts skip.
 
-## P13 (built 2026-09-23, awaiting device)
+## P13 (close-out pending — criteria in)
 
-Recap tab: today totals plus last 7 days from the local event log. One rules-based sentence. No AI. No open counts. Scope freeze draft: `docs/V1_SCOPE_FREEZE.md`. Not accepted until the human confirms Recap and the six criteria.
+Recap vs Home matches. Criteria 2026-09-25: 1 yes; 2 no (Never Mind is a button, not a win); 3 yank accepted as wanted; 4 L0-only after 2 Continues (fix built, not re-checked); 5 yes; 6 yes. Freeze not accepted.
 
-## Next
+## Next (do these before v1.1)
 
-Human checks Recap against a lived day and accepts or rejects the freeze. P12 stays Assigned until Apple approves; then archive. Do not start v1.1 until the freeze is accepted.
+1. Reinstall this build. After 1–2 Continues on one app, next shield should be L1 (“already today”), after 3+ L2 (“Continue anyway”).
+2. Accept or reject `docs/V1_SCOPE_FREEZE.md` (yank is intended; Never Mind win is a later copy/UX job).
+3. Record P12 TestFlight skip or smoke.
+4. Only then: `milestones-v1.1/`. Do not implement Pro / StoreKit / Family / credits yet.
