@@ -10,8 +10,8 @@ Later monetization (do not write those files until asked): [`../milestones-produ
 | ID | File | Status | Goal |
 |---|---|---|---|
 | V11-00 | [MILESTONE_00_FRICTION_LADDER_CONFIRM.md](./MILESTONE_00_FRICTION_LADDER_CONFIRM.md) | **PASS** 2026-09-30 | Confirm L1/L2 after Continues (code already in 0.1 (3)) |
-| V11-01 | [MILESTONE_01_NEVER_MIND_WIN.md](./MILESTONE_01_NEVER_MIND_WIN.md) | in progress | Never Mind feels like a win (copy/UX only) |
-| V11-02 | [MILESTONE_02_UI_PASS.md](./MILESTONE_02_UI_PASS.md) | not started | Readable UI on the existing loop |
+| V11-01 | [MILESTONE_01_NEVER_MIND_WIN.md](./MILESTONE_01_NEVER_MIND_WIN.md) | **PASS** 2026-09-30 (build 4) | Never Mind feels like a win (copy/UX only) |
+| V11-02 | [MILESTONE_02_UI_PASS.md](./MILESTONE_02_UI_PASS.md) | next | Readable UI on the existing loop + make the Never Mind win land visually |
 
 ## Saved for later (no files)
 

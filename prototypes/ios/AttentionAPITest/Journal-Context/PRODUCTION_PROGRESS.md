@@ -58,4 +58,6 @@ Recap vs Home matches. Criteria 2026-09-25: 1 yes; 2 no (Never Mind is a button,
 
 ## Next
 
-V11-00 **PASS** 2026-09-30 (L0→L1→L2 on device, no code change). Now V11-01 Never Mind win, then 02 UI pass. StoreKit/programs not laid out.
+V11-00 **PASS** 2026-09-30 (L0→L1→L2 on device, no code change).
+V11-01 **PASS** 2026-09-30 on TestFlight 0.1 (4): green Never Mind button + win line on the shield, Home win banner, and a Recap line that leads with Never Minds. XP and the closer are unchanged. The human says the UI is still bland, so the win doesn't land visually yet; that goes to V11-02.
+Next: V11-02 UI pass. StoreKit and programs are not laid out.

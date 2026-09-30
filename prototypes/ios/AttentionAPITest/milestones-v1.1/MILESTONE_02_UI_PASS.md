@@ -4,7 +4,9 @@
 
 **User-visible change:** Home, Apps, Settings, Recap, and the shield chrome you already have. Drop leftover milestone titles (“P08 — Home + Settings budget”), tighten hierarchy, keep numbers honest.
 
-**Prerequisite:** V11-01 done (Never Mind win copy in place so this pass does not restyle a dead button).
+**Prerequisite:** V11-01 done (Never Mind win copy in place so this pass does not restyle a dead button). V11-01 PASS 2026-09-30.
+
+**Carried from V11-01:** the win copy works, but the UI around it is bland, so the win doesn't *feel* like one yet. This pass should make the Never Mind moment visually stronger: the Home banner, the Never Mind count and streak, and Recap. Still no new XP rules or features.
 
 **Agent rule:** implement this milestone only. Prefer clear type, spacing, and section order over new illustrations or custom icons. Do not add StoreKit, programs, or a marketing site. Do not rename the bundle. Home-screen icon can stay the lab pause-bars mark unless a one-file swap is trivial and still ugly-honest.
 
@@ -20,7 +22,7 @@
 
 | Surface | Do | Don’t |
 |---|---|---|
-| Home | Lead with today + Never Mind win + goals. Metrics still Never Minds / Continues / windows / minutes | New charts that imply opens |
+| Home | Lead with today + Never Mind win + goals. Make the win banner and the Never Mind count / streak the visual focus. Metrics still Never Minds / Continues / windows / minutes | New charts that imply opens |
 | Shield | Keep L0–L1–L2 + Never Mind win from V11-00/01 | New buttons or delay |
 | Apps | Tracked list + names + per-app window. Hide or tuck debug resets | Rebuild picker |
 | Settings | Window, budget, Pause, honesty replay. One “lab / debug” disclosure if needed | Paywall |

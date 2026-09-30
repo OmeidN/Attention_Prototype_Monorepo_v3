@@ -35,7 +35,7 @@ Keep: Never Mind writes `intentional_choice`, does not bump `continues_today`, s
 - [x] No “opens saved” / session copy
 - [x] Never Mind still does not increment Continue level (`recordNeverMind` path unchanged)
 
-## What shipped (2026-09-30, awaiting device)
+## What shipped (2026-09-30, build 4)
 
 - Shield: Never Mind button is green. The subtitle keeps the L0/L1/L2 line and adds “Never Mind is the win: +10 XP. N so far today.” (`InterventionState.neverMindsTodayAll`, max of counter and log).
 - Home: a green banner at the top when today’s Never Minds rose since you last tapped **Nice**. It names the last app, the XP, today’s count, and the streak. Logs `ATTN-V11-01 win_shown` / `win_dismissed`.
@@ -44,14 +44,14 @@ Keep: Never Mind writes `intentional_choice`, does not bump `continues_today`, s
 
 ## Physical-device checklist (human)
 
-- [ ] Shield Never Mind: still blocked; copy reads as the intended win, not dismiss
-- [ ] Reopen Attention: Home shows the new Never Mind and it is obvious (not only a number in a list)
-- [ ] XP / streak still move the same as v1 (+10, streak day)
-- [ ] Continue path unchanged (extra tap, wall still yanks)
-- [ ] Recap sentence leads with Never Minds when you had some
+- [x] Shield Never Mind: still blocked; copy reads as the intended win, not dismiss
+- [x] Reopen Attention: Home shows the new Never Mind and it is obvious (not only a number in a list)
+- [x] XP / streak still move the same as v1 (+10, streak day)
+- [x] Continue path unchanged (extra tap, wall still yanks)
+- [x] Recap sentence leads with Never Minds when you had some
 
 ## Definition of done
 
-- [ ] Human says Never Mind feels like a win, or records what is still missing (copy only)
+- [x] Human 2026-09-30, TestFlight 0.1 (4): **PASS on all steps.** Still missing: the UI is bland, so the win doesn't land visually yet. That goes to V11-02.
 
 **Next:** [V11-02 — UI pass](./MILESTONE_02_UI_PASS.md)

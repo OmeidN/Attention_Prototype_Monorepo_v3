@@ -58,7 +58,7 @@ Entitlements reviewed. Each file has `com.apple.developer.family-controls` and A
 | # | Criterion | Human |
 |---|---|---|
 | 1 | Pause at door for every tracked app | **yes** (2026-09-25) |
-| 2 | Never Mind feels like a win | **no** — feels like a button press, not a win |
+| 2 | Never Mind feels like a win | **no** — feels like a button press, not a win. **V11-01 (2026-09-30, build 4): copy + banner PASS**; the UI is still bland, so the visual side is in V11-02. |
 | 3 | Timed Continue + safe re-shield | **no vs design-plan wording** — wall can yank; human **wants** that |
 | 4 | Firmer copy after more Continues | **no on wear** — only L0 “Pause a beat” after 2 Continues on the same app. Fix 2026-09-25: shield level now uses today’s Continue events (same store as Home). **Re-checked 2026-09-30 (V11-00): yes** — L0→L1→L2, Never Mind does not raise it, survives force-quit. |
 | 5 | No dishonest open/session claims | **yes** |
