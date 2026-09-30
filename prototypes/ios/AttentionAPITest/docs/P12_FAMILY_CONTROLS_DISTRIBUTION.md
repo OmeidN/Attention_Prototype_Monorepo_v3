@@ -4,9 +4,9 @@ Tag: `ATTN-P12`
 Team ID: `VPG6W79282`  
 Account Holder only. Development Family Controls already works on device. That is not distribution approval. This runbook does not claim App Store or TestFlight approval.
 
-## Status (2026-09-25)
+## Status (2026-09-26)
 
-Apple email: Family Controls (Distribution) assigned to the account; capability can be configured on eligible apps. Human archived. **TestFlight not run.** v1 close-out still pending Recap wear + freeze. Do not treat this as App Store approval.
+Apple email: Family Controls (Distribution) assigned to the account. Archive + TestFlight smoke done. App Store Connect listing **Attention Lab**, build **0.1 (3)**, bundle `com.attention.apitest`. Human 2026-09-26: TestFlight install/open consistent with the Xcode dogfood; shields work. **Not App Store approval.** v1 frozen 2026-09-26.
 
 ## Bundle IDs to keep
 

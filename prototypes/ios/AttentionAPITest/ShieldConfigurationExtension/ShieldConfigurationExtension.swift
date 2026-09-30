@@ -33,6 +33,7 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
         let label = ShieldCopySettings.userLabel(for: token) ?? "app"
         let titleText = "Attention — \(label)"
+        let winGreen = UIColor(red: 0.16, green: 0.55, blue: 0.33, alpha: 1)
 
         guard ShieldCopySettings.suite != nil else {
             return ShieldConfiguration(
@@ -45,7 +46,7 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
                     color: UIColor(white: 0.85, alpha: 1)
                 ),
                 primaryButtonLabel: ShieldConfiguration.Label(text: "Never Mind", color: .white),
-                primaryButtonBackgroundColor: UIColor(red: 0.2, green: 0.45, blue: 0.85, alpha: 1),
+                primaryButtonBackgroundColor: winGreen,
                 secondaryButtonLabel: ShieldConfiguration.Label(text: "Continue", color: .white)
             )
         }
@@ -89,14 +90,22 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
             background = UIColor(white: 0.12, alpha: 1)
         }
 
+        let neverMinds = InterventionState.neverMindsTodayAll()
+        let winLine = neverMinds == 0
+            ? "Never Mind is the win: +\(ScoringRules.neverMindXP) XP. First one today."
+            : "Never Mind is the win: +\(ScoringRules.neverMindXP) XP. \(neverMinds) so far today."
+
         return ShieldConfiguration(
             backgroundBlurStyle: .systemMaterial,
             backgroundColor: background,
             icon: UIImage(systemName: iconName),
             title: ShieldConfiguration.Label(text: titleText, color: .white),
-            subtitle: ShieldConfiguration.Label(text: subtitleText, color: UIColor(white: 0.85, alpha: 1)),
+            subtitle: ShieldConfiguration.Label(
+                text: "\(subtitleText)\n\n\(winLine)",
+                color: UIColor(white: 0.85, alpha: 1)
+            ),
             primaryButtonLabel: ShieldConfiguration.Label(text: "Never Mind", color: .white),
-            primaryButtonBackgroundColor: UIColor(red: 0.2, green: 0.45, blue: 0.85, alpha: 1),
+            primaryButtonBackgroundColor: winGreen,
             secondaryButtonLabel: ShieldConfiguration.Label(text: secondaryLabel, color: .white)
         )
     }

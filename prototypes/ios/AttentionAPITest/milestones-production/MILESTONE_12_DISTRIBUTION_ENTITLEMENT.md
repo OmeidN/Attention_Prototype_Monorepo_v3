@@ -36,14 +36,14 @@ Apple: development Family Controls ≠ distribution. Request distribution for **
 
 - [x] Distribution requests submitted for **host + each extension** (2026-09-23; wildcard skipped)
 - [x] Request status recorded — Apple granted to the account 2026-09-25
-- [x] After approval: archive succeeds with Family Controls in profile — human archived 2026-09-25
-- [ ] Optional: TestFlight upload smoke (install on device) — not run
-- [x] Record in `PRODUCTION_RESULTS.md` — close-out pending TestFlight or skip
+- [x] After approval: archive succeeds with Family Controls in profile — human archived 2026-09-25; re-archive 2026-09-26 for icons (build 3)
+- [x] Optional: TestFlight upload smoke (install on device) — human 2026-09-26, shields OK
+- [x] Record in `PRODUCTION_RESULTS.md`
 
 ## Definition of done
 
 - [x] Requests submitted (minimum) or fully approved (ideal) — granted to account
-- [ ] Archive/TestFlight status recorded — archive done; TestFlight not run
-- [ ] Human confirmed — milestone not closed (TestFlight skip or smoke still open)
+- [x] Archive/TestFlight status recorded — TestFlight 0.1 (3) installed
+- [x] Human confirmed 2026-09-26
 
 **Next:** [P13 — Recap and v1 Freeze](./MILESTONE_13_RECAP_AND_V1_FREEZE.md)

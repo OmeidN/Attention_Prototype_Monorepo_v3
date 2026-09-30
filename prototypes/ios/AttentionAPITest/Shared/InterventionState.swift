@@ -69,6 +69,17 @@ enum InterventionState {
         return suite?.integer(forKey: neverMindPrefix + appID.uuidString) ?? 0
     }
 
+    /// Never Minds today across all tracked apps, for the shield's win line.
+    static func neverMindsTodayAll() -> Int {
+        ensureToday()
+        let stored = suite?.dictionaryRepresentation()
+            .filter { $0.key.hasPrefix(neverMindPrefix) }
+            .compactMap { $0.value as? Int }
+            .reduce(0, +) ?? 0
+        let logged = TodayEventLog.events(on: Date()).filter { $0.type == "intentional_choice" }.count
+        return max(stored, logged)
+    }
+
     static func level(for appID: UUID) -> Int {
         level(forContinueCount: continueCount(appID: appID))
     }

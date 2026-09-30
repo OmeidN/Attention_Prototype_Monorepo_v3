@@ -45,15 +45,15 @@ Design plan success criteria — human should be able to affirm:
 
 ## Physical-device checklist (human)
 
-- [ ] Recap matches lived day (Never Minds / Continues / windows)
-- [ ] Affirm or reject each of the 6 success criteria in `PRODUCTION_RESULTS.md`
-- [ ] Known limitations list matches reality
-- [ ] Agree v1 scope is frozen
+- [x] Recap matches lived day (Never Minds / Continues / windows) — 2026-09-25
+- [x] Affirm or reject each of the 6 success criteria in `PRODUCTION_RESULTS.md` — 2026-09-25
+- [x] Known limitations list matches reality
+- [x] Agree v1 scope is frozen — 2026-09-26
 
 ## Definition of done
 
-- [ ] Thin recap on device
-- [ ] Scope freeze doc accepted by human
-- [ ] Production milestone track complete for v1
+- [x] Thin recap on device
+- [x] Scope freeze doc accepted by human
+- [x] Production milestone track complete for v1
 
-**Next:** stop — or open a v1.1 milestone folder for polish/programs/TestFlight iteration only after freeze.
+**Next:** [`../milestones-v1.1/milestones-v1.1.md`](../milestones-v1.1/milestones-v1.1.md)

@@ -65,7 +65,7 @@ Spine: shield at the door → Never Mind or timed Continue → re-shield → rew
 Record production pass/fail in [`../docs/PRODUCTION_RESULTS.md`](../docs/PRODUCTION_RESULTS.md) (create on P00 if missing).  
 Do not overwrite lab `TEST_RESULTS.md`.
 
-**v1 close-out (2026-09-25):** pending Recap wear + freeze accept. P12 archive done; TestFlight not run. Next-version folder [`../milestones-v1.1/`](../milestones-v1.1/) is empty until freeze. Later direction: [FUTURE_MONETIZATION.md](./FUTURE_MONETIZATION.md).
+**v1 frozen 2026-09-26.** P00–P13 PASS. Next list: [`../milestones-v1.1/milestones-v1.1.md`](../milestones-v1.1/milestones-v1.1.md). Later direction: [FUTURE_MONETIZATION.md](./FUTURE_MONETIZATION.md).
 
 ## Explicit non-goals until after P13
 

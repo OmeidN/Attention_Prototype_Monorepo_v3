@@ -1,12 +1,12 @@
 # iOS Production Progress
 
-Last updated: 2026-09-25 (Recap wear)
+Last updated: 2026-09-26 (v1 freeze accepted)
 
 | Item | Value |
 |---|---|
-| Current | **v1 close-out pending** |
-| Status | Waiting on Recap wear + freeze accept. P12: distribution granted; archive done; TestFlight not run. |
-| Prior | **P11 PASS** · **P10 PASS** · **P05B PASS** (`wall_multi_v7`) |
+| Current | **v1 frozen** |
+| Status | P00–P13 PASS. Next: `milestones-v1.1/`. |
+| Prior | **P13 PASS** · **P12 PASS** · **P11 PASS** |
 | Closer | Wall-only. Usage threshold OFF as a closer. Unique end minutes. No burst-close. |
 
 ## P05B (settled 2026-09-22)
@@ -44,17 +44,18 @@ Optional duration checkpoint. Two tracked apps each showed a new timestamp after
 
 Stress matrix pass (force-quit, reboot, lock, rapid reopen, switcher, notifications, airplane, date rollover, revoke auth). All-day wear was not run; human accepted and moved on. Date jump: window time on the fake day showed ~1330 min, then ~3 min after the date was restored. Left alone.
 
-## P12 (close-out pending)
+## P12 (PASS 2026-09-26)
 
-Apple email 2026-09-25: Family Controls (Distribution) assigned to the account. Human archived. **TestFlight not run.** Phone dogfood can stay on the current install. Not marked PASS until TestFlight is recorded or the human accepts skip.
+Apple granted Family Controls (Distribution) 2026-09-25. App Store Connect listing **Attention Lab** (home screen still Attention). Build **0.1 (3)** uploaded after adding a real App Icon catalog (earlier archives failed ITMS-90022). Human: TestFlight install/open consistent with the Xcode dogfood; shields work. Not App Store approval.
 
-## P13 (close-out pending — criteria in)
+## P13 (PASS 2026-09-26)
 
-Recap vs Home matches. Criteria 2026-09-25: 1 yes; 2 no (Never Mind is a button, not a win); 3 yank accepted as wanted; 4 L0-only after 2 Continues (fix built, not re-checked); 5 yes; 6 yes. Freeze not accepted.
+Recap vs Home matches. Criteria 2026-09-25: 1 yes; 2 no (Never Mind is a button, not a win); 3 yank accepted as wanted; 4 L0-only on wear (fix in 0.1 (3), re-check is V11-00); 5 yes; 6 yes. **Freeze accepted.**
 
-## Next (do these before v1.1)
+## Post-freeze watch (TestFlight 0.1 (3))
 
-1. Reinstall this build. After 1–2 Continues on one app, next shield should be L1 (“already today”), after 3+ L2 (“Continue anyway”).
-2. Accept or reject `docs/V1_SCOPE_FREEZE.md` (yank is intended; Never Mind win is a later copy/UX job).
-3. Record P12 TestFlight skip or smoke.
-4. Only then: `milestones-v1.1/`. Do not implement Pro / StoreKit / Family / credits yet.
+2026-09-29: TikTok did not reshield long after its window. Apps tab showed `open_windows=[Snap,Tiktok]` but P05B `pending=[Snap]`. TikTok's wall was missing while its open window stayed, so nothing was going to close it. Instagram and Snap closed normally. **Shield all** recovered it; later TikTok Continues reshielded fine. The cause (wall never armed vs. dropped later) is not known. Watching on TestFlight. The closer is not reopened unless it happens again. If it does, capture P05B `Monitor / wall`, P04 `open_windows`, and Dogfood → Copy logs *before* tapping Shield all.
+
+## Next
+
+V11-00 **PASS** 2026-09-30 (L0→L1→L2 on device, no code change). Now V11-01 Never Mind win, then 02 UI pass. StoreKit/programs not laid out.

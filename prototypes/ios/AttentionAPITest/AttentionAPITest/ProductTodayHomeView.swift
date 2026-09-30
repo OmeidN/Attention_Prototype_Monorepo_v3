@@ -14,10 +14,19 @@ struct ProductTodayHomeView: View {
     @State private var authErrorText: String?
     @State private var isRequestingAuth = false
     @State private var exportBlob = ""
+    @State private var loggedWinCount = 0
+    @AppStorage("attention.v11.nm_seen_day") private var nmSeenDay = ""
+    @AppStorage("attention.v11.nm_seen_count") private var nmSeenCount = 0
 
     var body: some View {
         NavigationStack {
             List {
+                if newNeverMinds > 0 {
+                    Section {
+                        neverMindWinBanner
+                    }
+                }
+
                 Section("Today") {
                     Text("Attention")
                         .font(.largeTitle.weight(.bold))
@@ -198,13 +207,58 @@ struct ProductTodayHomeView: View {
             scoring.loadPersisted()
             _ = today.ingest(reason: "onAppear")
             exportBlob = TodayEventLog.exportText()
+            logWinIfNew()
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 authStatusLabel = FamilyControlsAuth.statusLabel
                 _ = today.ingest(reason: "scene_active")
+                logWinIfNew()
             }
         }
+    }
+
+    /// Never Minds logged today since the user last dismissed the banner.
+    private var newNeverMinds: Int {
+        let seen = nmSeenDay == InterventionState.todayString() ? nmSeenCount : 0
+        return max(0, today.neverMindsToday - seen)
+    }
+
+    private var neverMindWinBanner: some View {
+        let n = newNeverMinds
+        let label = today.recent.first(where: { $0.type == "intentional_choice" })?.userLabel ?? "a tracked app"
+        let headline = n == 1
+            ? "You backed out of \(label)."
+            : "You backed out \(n) times since you last looked."
+        return VStack(alignment: .leading, spacing: 6) {
+            Label("Never Mind — that's the win", systemImage: "checkmark.seal.fill")
+                .font(.headline)
+                .foregroundStyle(.green)
+            Text(headline)
+                .font(.body.weight(.semibold))
+            Text("+\(n * ScoringRules.neverMindXP) XP · \(today.neverMindsToday) today · streak \(scoring.streak) day\(scoring.streak == 1 ? "" : "s")")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+            Button("Nice") {
+                logger.log("ATTN-V11-01", "win_dismissed new=\(n) today=\(today.neverMindsToday)")
+                nmSeenDay = InterventionState.todayString()
+                nmSeenCount = today.neverMindsToday
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.green)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func logWinIfNew() {
+        let n = newNeverMinds
+        guard n > 0, n != loggedWinCount else { return }
+        loggedWinCount = n
+        let label = today.recent.first(where: { $0.type == "intentional_choice" })?.userLabel ?? "NO_LABEL"
+        logger.log(
+            "ATTN-V11-01",
+            "win_shown new=\(n) today=\(today.neverMindsToday) last_label=\(label) xp=+\(n * ScoringRules.neverMindXP) streak=\(scoring.streak)"
+        )
     }
 
     private func eventLine(_ e: TodayEvent) -> String {

@@ -14,7 +14,7 @@ Track production milestones **P00–P13** here. Do **not** overwrite lab `TEST_R
 - App Group: `group.com.attention.apitest`
 - Boundary decision: **evolved lab project** (keep working signing + App Group for dogfood; optional rename to `com.attention.app` at P12 distribution)
 - Display name: `Attention` (`INFOPLIST_KEY_CFBundleDisplayName`)
-- Family Controls distribution status: **granted to the account** (Apple email 2026-09-25). Human archived. **TestFlight not run.** v1 close-out still pending Recap wear + freeze accept. Runbook: `docs/P12_FAMILY_CONTROLS_DISTRIBUTION.md`.
+- Family Controls distribution status: **granted to the account** (Apple email 2026-09-25). TestFlight smoke **PASS** 2026-09-26 — listing Attention Lab, build 0.1 (3). Not App Store approval. **v1 frozen 2026-09-26.** Runbook: `docs/P12_FAMILY_CONTROLS_DISTRIBUTION.md`. Freeze: `docs/V1_SCOPE_FREEZE.md`.
 
 ## Boundary note (P00)
 
@@ -38,8 +38,8 @@ Chose **evolved lab project** over a brand-new `com.attention.app` target so P00
 | P09 | Onboarding + notification honesty | **PASS** | Human confirmed on device 2026-09-23. Full path: why → auth → pick/name → notification honesty (checkbox required) → window/budget → shields. Second launch goes to Home. Honesty copy matched shield/notification behavior. Tips replay and first-launch reset available in Settings. |
 | P10 | Usage checkpoint optional | **PASS** | Human 2026-09-23. Toggle on: two different tracked apps each got a new timestamp after ~1 min of use. Toggle off: another minute in a tracked app added nothing; last timestamp stayed. Side signal only (`threshold_unit=duration`); not an open or a session; wall closer unchanged. `checkpoint_unavailable` not reported. |
 | P11 | Dogfood / stress / all-day | **PASS** | Human 2026-09-23. Stress matrix pass: force-quit, reboot, lock/unlock, rapid reopen, app switcher, notifications, airplane, date rollover, revoke auth (no crash, re-authorize CTA). **All-day wear not run** — human accepted and moved on. Date jump: other Today counts reset; window time on the fake day showed ~1330 min (open wall billed until the new clock), then ~3 min again after the date was restored. Left alone — test artifact, not a closer bug. |
-| P12 | Distribution entitlement | CLOSE-OUT PENDING | Apple granted Family Controls (Distribution) 2026-09-25. Human archived. TestFlight not run. Not PASS until TestFlight is recorded or skip is accepted. |
-| P13 | Recap + v1 freeze | CLOSE-OUT PENDING | **Wear 2026-09-25 (~2.5 days, same install):** Recap today matches Home — 5 Never Minds, 4 Continues, 4 windows, 35m 57s, goals 3/4 (window-time goal open at 35m/15m), XP today 50. Per-app sums to the same totals (Ig / Snap / TikTok). Last 7 days: 23rd 3/3/3 18m21s; 24th 3/15/15 155m40s; 25th as above; earlier zeros. Streak 3; “Last streak day” shows 2026-09-23 (oldest day of the streak, not today). Freeze not accepted. Six criteria still blank. |
+| P12 | Distribution entitlement | **PASS** | Apple granted Family Controls (Distribution) 2026-09-25. Human 2026-09-26: TestFlight install of Attention Lab **0.1 (3)** on the existing dogfood phone. Home/Recap consistent; shields work. App icon catalog added so the upload would validate. Not an App Store release. |
+| P13 | Recap + v1 freeze | **PASS** | **Wear 2026-09-25 (~2.5 days):** Recap today matches Home — 5 Never Minds, 4 Continues, 4 windows, 35m 57s, goals 3/4, XP 50. Per-app sums match (Ig / Snap / TikTok). Last 7 days: 23rd 3/3/3 18m21s; 24th 3/15/15 155m40s; 25th as above. Streak 3; “Last streak day” is 2026-09-23 (oldest day of the streak). Criteria filled 2026-09-25. **Freeze accepted 2026-09-26.** |
 
 ## Bundle ID inventory (P12, 2026-09-23)
 
@@ -60,6 +60,6 @@ Entitlements reviewed. Each file has `com.apple.developer.family-controls` and A
 | 1 | Pause at door for every tracked app | **yes** (2026-09-25) |
 | 2 | Never Mind feels like a win | **no** — feels like a button press, not a win |
 | 3 | Timed Continue + safe re-shield | **no vs design-plan wording** — wall can yank; human **wants** that |
-| 4 | Firmer copy after more Continues | **no on wear** — only L0 “Pause a beat” after 2 Continues on the same app. Fix 2026-09-25: shield level now uses today’s Continue events (same store as Home). Re-check on device. |
+| 4 | Firmer copy after more Continues | **no on wear** — only L0 “Pause a beat” after 2 Continues on the same app. Fix 2026-09-25: shield level now uses today’s Continue events (same store as Home). **Re-checked 2026-09-30 (V11-00): yes** — L0→L1→L2, Never Mind does not raise it, survives force-quit. |
 | 5 | No dishonest open/session claims | **yes** |
 | 6 | Notification honesty understood | **yes** |

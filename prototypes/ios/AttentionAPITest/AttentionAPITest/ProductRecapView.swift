@@ -81,7 +81,12 @@ struct ProductRecapView: View {
         }
         let goalBit = scoring.goals.isEmpty ? "" : " Goals hit \(goalsHit)/\(scoring.goals.count)."
         let streakBit = scoring.streak > 0 ? " Streak \(scoring.streak)." : ""
-        return "\(nm) Never Mind\(nm == 1 ? "" : "s") today. \(cont) Continue\(cont == 1 ? "" : "s"). \(windows) access window\(windows == 1 ? "" : "s").\(goalBit)\(streakBit)"
+        let rest = "\(cont) Continue\(cont == 1 ? "" : "s"), \(windows) access window\(windows == 1 ? "" : "s").\(goalBit)\(streakBit)"
+        if nm == 0 {
+            return "No Never Minds yet today. \(rest)"
+        }
+        let times = nm == 1 ? "once" : "\(nm) times"
+        return "You chose Never Mind \(times) today (+\(nm * ScoringRules.neverMindXP) XP). \(rest)"
     }
 
     private func reload(reason: String) {

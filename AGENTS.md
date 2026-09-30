@@ -23,4 +23,4 @@ This repository is a technical feasibility lab for Attention. Do not prematurely
 A milestone is done only when it builds, has instrumentation, has clear physical-device steps, lists limitations, and did not accidentally implement later work.
 
 ## Current Priority
-iOS first. A local Apple silicon Mac, Xcode, a physical iPhone, and a paid Apple Developer Program membership are available, so Screen Time APIs can be tested on-device. Android is paused at M00.
+iOS first. Production v1 (P00–P13) is **frozen** — see `prototypes/ios/AttentionAPITest/docs/V1_SCOPE_FREEZE.md`. New work is one milestone from `prototypes/ios/AttentionAPITest/milestones-v1.1/`. Do not reopen `wall_multi_v7` unless that milestone says the closer is broken. Android is paused at M00.
